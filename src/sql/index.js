@@ -1,0 +1,214 @@
+const { handleDisconnection } = require('./connection')
+
+const $Methods = require('./methods')
+
+const base = 'xxxx'
+
+function handleResult({ err, res, name }) {
+    let result = {
+        code: 'rl',
+        message: `${name} resolve`,
+        data: res
+    }
+    if (err) {
+        result = {
+            code: 'rj',
+            message: `${name}: ${err.message}`,
+            data: null
+        }
+    }
+    return result
+}
+
+/**
+ * 
+ * @param {object} connection 数据库返回的对象
+ * @param {string} name 表名
+ * @param {string} conditions 数据库返回的对象
+ * @returns  promise的成功/失败
+ */
+function createTableSQL({ connection, name, conditions, callback }) {
+    /**
+     * 类别表： auto_increment自增， PRIMARY KEY：设为主键
+     * (id int auto_increment PRIMARY KEY, h float(16), l float(16), o float(16), c float(16), v varchar(32), d varchar(32), code int(10), h varchar(10))
+     * 
+     */
+    return new Promise((rl, rj) => {
+        let sql = `CREATE TABLE ${name} (${conditions})`
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: 'createSQL' })
+            eval(result.code)(result)
+        })
+    })
+}
+function hasTablesSql({ connection, name}) {
+    // 查询某个表是否存在
+    return new Promise((rl, rj) => {
+        let sql = `SHOW TABLES like '%${name}%'`
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: `${name}已存在 hasSQL` })
+            eval(result.code)(result)
+        })
+    })
+}
+
+/**
+ * 
+ * @param {Objec} connection 数据库对象
+ * @param {string} name 表名
+ * @param {string} distinct 去重查询，这里用来查 list中有多少类别：000,002,600,...
+ * @param {string} conditions 条件，接在where 后面
+ * @returns promise的成功/失败
+ */
+function querySQL({ connection, name, distinct, conditions, callback }) {
+    // distinct = 'DISTINCT(type)'
+    return new Promise((rl, rj) => {
+        let sql = `SELECT * FROM ${name}`
+        if (conditions) {
+            sql += ` where ${conditions}`
+        } 
+        if (distinct) {
+            sql = `SELECT ${distinct} FROM ${name}`
+        }
+        
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: 'querySQL' })
+            eval(result.code)(result)
+        })
+    })
+}
+
+function insertSQL({connection, name, values, callback}) {
+    return new Promise((rl, rj) => {
+        // let sql = `INSERT INTO ig502_list(code, type, name, jys) VALUES('000001', '000', '零零幺', 'sz'),('603999', '603', '六零幺', 'sz')`
+        let sql = `INSERT INTO ${name} VALUES ${values}`
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: 'insertSQL' })
+            eval(result.code)(result)
+        })
+    })
+}
+function deleteSQL({ connection, name, conditions, callback }) {
+    // DELETE FROM ig502_today WHERE type = 'day'
+    return new Promise((rl, rj) => {
+        let sql = `DELETE FROM ${name}`
+        if (conditions) {
+            sql += ` WHERE ${conditions}`
+        }
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: 'deleteSQL' })
+            eval(result.code)(result)
+        })
+    })
+}
+
+
+/* ****************************************************** */
+
+function getList({connection}) {
+    return new Promise(async (rl, rj) => {
+        console.log(`>>> 开始查询list...`);
+        await querySQL({
+            connection,
+            name: 'ig502_list'
+        }).then(res => {
+            console.log(`> get list ${res.message}`);
+            rl(res.data)
+        }).catch(err => {
+            console.log(`> get list ${err.message}`);
+            rj()
+        })
+    })
+}
+
+
+function getTables({ connection, name, conditions }) {
+    return new Promise(async (rl, rj) => {
+        console.log(`>>> 开始查询${name}表...`);
+        await querySQL({
+            connection,
+            name: `${base}_${name}`,
+            conditions
+        }).then(res => {
+            console.log(`> get ${name} ${res.message}`);
+            rl(res.data)
+        }).catch(err => {
+            console.log(`> get ${name} ${err.message}`);
+            rj()
+        })
+    })
+}
+
+function setTables({ connection, name, code, type, dwm }) {
+    return new Promise(async (rl, rj) => {
+        console.log(`>> ${code}: 开始存入${name}表`);
+        await insertSQL({
+            connection,
+            name: `${base}_${name}(code, type, dwm)`,
+            values: `('${code}', '${type}', '${dwm}')`
+        }).then(d => {
+            console.log(`>> set ${name} ${d.message}`);
+            rl()
+        }).catch(async err => {
+            console.log(`>> set ${name} ${err.message}`);
+            rj()
+        })
+    })
+}
+
+// function delTables({ connection, code, tableName }) {
+//     return new Promise(async (rl, rj) => {
+//         let name = `${base}_today`
+//         console.log(`>> ${code}: 从${name}中删除失败的内容`);
+//         await deleteSQL({
+//             connection,
+//             name,
+//             conditions: `code=${code}`
+//         }).then(d => {
+//             console.log(`>> del ${code} ${d.message}`);
+//             rl()
+//         }).catch(err => {
+//             console.log(`>> del ${code} ${err.message}`);
+//             rj()
+//         })
+//     })
+// }
+
+function save({ connection, item, dwm }) {
+    return new Promise(async (rl, rj) => {
+        let { code, data, type } = item
+        let codeType = code.slice(0, 3)
+        let keys = `${Object.keys(data[0])},type,dwm`
+        let values = data.map(level1 => {
+            return `(${Object.values(level1).map(v => `'${v}'`)},${codeType},'${dwm}')`
+        })
+        await insertSQL({
+            connection,
+            name: `${base}_${type}(${keys})`,
+            values: `${values}`
+        }).then(d => {
+            console.log(`>> save ${code} ${d.message}`);
+            rl()
+        }).catch(err => {
+            console.log(`>> save ${code} ${err.message}`);
+            rj()
+        })
+    })
+}
+
+/* ****************************************************** */
+
+
+module.exports = {
+    base,
+    handleDisconnection,
+    hasTablesSql,
+    createTableSQL,
+    querySQL,
+    deleteSQL,
+    insertSQL,
+    getList,
+    getTables,
+    setTables,
+    save
+}
