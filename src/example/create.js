@@ -86,7 +86,6 @@ function addTables(connection) {
                 'c varchar(32)',
                 'v varchar(32)',
                 'e varchar(32)',
-                'd varchar(32)',
                 'zde varchar(32)',
                 'zf varchar(10)',
                 'hs varchar(10)',
@@ -94,6 +93,7 @@ function addTables(connection) {
                 'ma10 varchar(16)',
                 'ma20 varchar(16)',
                 'ma60 varchar(16)',
+                'd varchar(32)',
                 'code varchar(10)',
                 'type varchar(10)',
                 'dwm varchar(10)'

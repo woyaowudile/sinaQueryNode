@@ -1,6 +1,5 @@
 const { handleDisconnection } = require('./connection')
 
-const $Methods = require('./methods')
 
 const base = 'xxxx'
 
@@ -84,6 +83,19 @@ function insertSQL({connection, name, values, callback}) {
         let sql = `INSERT INTO ${name} VALUES ${values}`
         connection.query(sql, function(err, res) {
             let result = handleResult({ err, res, name: 'insertSQL' })
+            eval(result.code)(result)
+        })
+    })
+}
+function updateSQL({ connection, name, values, conditions, callback }) {
+    // UPDATE xxxx_000_copy1  SET l='1111',o='111' where code=603999
+    return new Promise((rl, rj) => {
+        let sql = `UPDATE ${name} SET ${values}`
+        if (conditions) {
+            sql += ` WHERE ${conditions}`
+        }
+        connection.query(sql, function(err, res) {
+            let result = handleResult({ err, res, name: 'updateSQL' })
             eval(result.code)(result)
         })
     })
@@ -177,11 +189,12 @@ function setTables({ connection, name, code, type, dwm }) {
 function save({ connection, item, dwm }) {
     return new Promise(async (rl, rj) => {
         let { code, data, type } = item
-        let codeType = code.slice(0, 3)
+        
         let keys = `${Object.keys(data[0])},type,dwm`
         let values = data.map(level1 => {
-            return `(${Object.values(level1).map(v => `'${v}'`)},${codeType},'${dwm}')`
+            return `(${Object.values(level1).map(v => `'${v}'`)},${type},'${dwm}')`
         })
+
         await insertSQL({
             connection,
             name: `${base}_${type}(${keys})`,
@@ -196,6 +209,32 @@ function save({ connection, item, dwm }) {
     })
 }
 
+function update({ connection, item, dwm }) {
+    
+    let { code, data, type } = item
+    let { d } = data[0]
+    let name = `${base}_${type}`
+    
+    let values = Object.keys(data[0]).map(v => {
+        return `${v}='${data[0][v]}'`
+    })
+    let conditions = `code='${code}' and dwm='${dwm}' and d='${d}'`
+
+    return new Promise(async (rl, rj) => {
+        await updateSQL({
+            connection,
+            name,
+            values: `${values}, type='${type}', dwm='${dwm}'`,
+            conditions
+        }).then(d => {
+            console.log(`>> update ${code} ${d.message}`);
+            rl()
+        }).catch(err => {
+            console.log(`>> update ${code} ${err.message}`);
+            rj()
+        })
+    })
+}
 /* ****************************************************** */
 
 
@@ -210,5 +249,6 @@ module.exports = {
     getList,
     getTables,
     setTables,
+    update,
     save
 }

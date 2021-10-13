@@ -1,6 +1,6 @@
 const API = require('../api')
 const SQL = require('../sql')
-
+const { sendMail } = require('../utils/sendEmail')
 
 function getContent({codes, start, end, period='d'}) {
     if (!start) {
@@ -33,6 +33,62 @@ function getContent({codes, start, end, period='d'}) {
     })
 }
 
+function update({ connection, item, dwm }) {
+    
+    let { code, type, data } = item
+    
+    return new Promise(async (rl, rj) => {
+        let { d } = data[0]
+
+        await SQL.getTables({
+            connection,
+            name: type,
+            conditions: `code='${code}' and dwm='${dwm}'`
+        }).then(async res => {
+            let flag = res.find(v => v.d === d)
+            if (flag) {
+                let result = updateOldData(res, item)
+                await SQL.update({ connection, item: result, dwm })
+            } else {
+                await SQL.save({connection, item, dwm})
+            }
+            rl()
+        })
+    })
+}
+
+function updateOldData(datas, item) {
+    let { code, type, data } = item
+    let ma10 = getMA(datas.slice(-10), 9, 10)
+    let ma20 = getMA(datas.slice(-20), 19, 20)
+    let ma60 = getMA(datas.slice(-60), 59, 60)
+    let [pre, curr] = datas.slice(-2)
+    let zf = ((curr.h - curr.l) / pre.c / 1 * 100).toFixed(2)
+    return {
+        code, type,
+        data: [{
+            ...data[0],
+            ma10, ma20, ma60, zf
+        }]
+    }
+}
+function getMA(datas, start, n) {
+    // 例： n = 10, start从0 - 9才能开始计算逻辑, 即 start - n >= -1
+    if (start < (n - 1)) return 
+    // 0 - 9 ； 2 - 11
+    // start: 9, n: 10 ; start: 11, n: 10
+    let data = datas.slice(start - (n - 1), (start + 1))
+    if (data.length === n) {
+        let count = data.reduce((x, y) => {
+            let x1 = x.c ? (x.c / 1) : x
+            let y1 = y.c ? (y.c / 1): y
+            return x1 + y1
+        }, 0)
+        return (count / n).toFixed(2) / 1
+    } else {
+        return
+    }
+}
 
 function someDay(days, symbol = '-') {
     let today = new Date()
@@ -49,16 +105,17 @@ module.exports = function (app, connection) {
         console.log(`-------------开始执行 /api/update---------------`);
 
         let { query } = req
+        let dwm = query.type || 'd'
         // 获取到today还没被update的code
-        let used = await SQL.$Methods.getTables({
+        let used = await SQL.getTables({
             connection,
             name: 'used',
-            conditions: `dwm=${query.type}`
+            conditions: `dwm='${dwm}'`
         })
-        let tds = await SQL.$Methods.getTables({
+        let tds = await SQL.getTables({
             connection,
             name: 'today',
-            conditions: `dwm=${query.type}`
+            conditions: `dwm='${dwm}'`
         })
         tds = tds.map(v => v.code)
         let unused = used.filter(v => !tds.includes(v.code))
@@ -69,7 +126,7 @@ module.exports = function (app, connection) {
             if (item.length) {
                 let codes = item.map(v => v.code)
                 
-                let ret = await getContent({ codes, period: query.type })
+                let ret = await getContent({ codes, period: dwm })
                 // update是多个可以一起调，所以res有可能是多个,如果没有就是null
                 let res = ret.data
                 while(res && res.length) {
@@ -81,22 +138,25 @@ module.exports = function (app, connection) {
                         await SQL.setTables({
                             connection, code, type,
                             name: 'fail',
-                            dwm: 'day'
+                            dwm
                         })
                     } else {
-                        await SQL.save({connection, item: level1})
+                        await update({connection, item: level1, dwm})
+                        // await SQL.save({connection, item: level1, dwm})
                         await SQL.setTables({
                             connection, code, type,
-                            name: 'used',
-                            dwm: 'day'
+                            name: 'today',
+                            dwm
                         })
                     }
                     res.splice(-1)
                 }
                 setTimeout(() => {
+                    console.log(`------${count}/${unused.length}------`);
                     fn()
                 }, 200)
             } else {
+                sendMail(`update： ${dwm} 成功！`)
                 console.log(`-------------执行完成 /api/update---------------`);
             }
         }

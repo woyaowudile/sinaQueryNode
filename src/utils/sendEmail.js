@@ -18,7 +18,7 @@ module.exports = {
         let mailOpts = {
             from: '1157850031@qq.com',
             to: '905421273@qq.com', // 多个收件人用逗号隔开
-            subject: 'node定时任务', // 标题
+            subject: 'sohu query node定时任务', // 标题
             html // 内容
         }
         transport.sendMail(mailOpts, (err, res) => {

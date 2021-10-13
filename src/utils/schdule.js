@@ -21,7 +21,12 @@ module.exports = {
         // 例： rule.hour = [1, 3, 4, 20]. 表示 每天 1点、3点、4点、晚上8点 运行
         // '* * * * * *' '秒分时日月周'
         // 例： 每日的12.30 -> '00 30 12 * * *'
-        // schdule.scheduleJob('00 30 16 * * *', () => {
+        // schdule.scheduleJob({
+        //     dayOfWeek: [1,2,3,4,5],
+        //     hour: [16],
+        //     minute: [30],
+        //     second: [0]
+        // }, () => {
         //     connection.query(`DELETE FROM ig502_today WHERE type = 'day'`, async (err, result) => {
         //         if (err) {
         //         } else {

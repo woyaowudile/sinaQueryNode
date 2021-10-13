@@ -1,5 +1,6 @@
 const API = require('../api')
 const SQL = require('../sql')
+const { sendMail } = require('../utils/sendEmail')
 
 function getContent({codes, start, end, period='d'}) {
     if (!start) {
@@ -119,6 +120,7 @@ module.exports = function (app, connection) {
                     fn()
                 }, 200)
             } else {
+                sendMail(`init： ${dwm} 成功！`)
                 console.log(`-------------执行完成 /api/init---------------`);
             }
         }
