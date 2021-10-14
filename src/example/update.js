@@ -38,16 +38,17 @@ function getContent({codes, start, end, query}) {
 
 function update({ connection, item, dwm }) {
     
+    let day = someDay(100, '-')
     let { code, type, data } = item
     
     return new Promise(async (rl, rj) => {
-        let { d } = data[0]
 
         await SQL.getTables({
             connection,
             name: type,
-            conditions: `code='${code}' and dwm='${dwm}'`
+            conditions: `code='${code}' and dwm='${dwm}' and d>='${day}'`
         }).then(async res => {
+            let { d } = data[0]
             let flag = res.find(v => v.d === d)
             let result = updateOldData(res, item)
             if (flag) {
@@ -109,7 +110,7 @@ module.exports = function (app, connection) {
         console.log(`-------------开始执行 /api/update---------------`);
 
         let { query } = req
-        let dwm = query.type || 'd', category = {}
+        let dwm = query.type || 'd'
         // 获取到today还没被update的code
         let used = await SQL.getTables({
             connection,
@@ -124,7 +125,7 @@ module.exports = function (app, connection) {
         tds = tds.map(v => v.code)
         let unused = used.filter(v => !tds.includes(v.code))
 
-        let count = 0, num = 1
+        let count = 0, num = 6
         let fn = async function () {
             let item = unused.slice(count, count += num)
             if (item.length) {
