@@ -2,12 +2,15 @@ const API = require('../api')
 const SQL = require('../sql')
 const { sendMail } = require('../utils/sendEmail')
 
-function getContent({codes, start, end, period='d'}) {
+function getContent({codes, start, end, query}) {
+    let period = query.type || 'd'
+    let days = (query.days / 1) || 0
+
     if (!start) {
-        start = someDay(0, '')
+        start = someDay(days, '')
     }
     if (!end) {
-        end = someDay(0, '')
+        end = someDay(days, '')
     }
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -46,11 +49,11 @@ function update({ connection, item, dwm }) {
             conditions: `code='${code}' and dwm='${dwm}'`
         }).then(async res => {
             let flag = res.find(v => v.d === d)
+            let result = updateOldData(res, item)
             if (flag) {
-                let result = updateOldData(res, item)
                 await SQL.update({ connection, item: result, dwm })
             } else {
-                await SQL.save({connection, item, dwm})
+                await SQL.save({connection, item: result, dwm})
             }
             rl()
         })
@@ -59,11 +62,12 @@ function update({ connection, item, dwm }) {
 
 function updateOldData(datas, item) {
     let { code, type, data } = item
-    let ma10 = getMA(datas.slice(-10), 9, 10)
-    let ma20 = getMA(datas.slice(-20), 19, 20)
-    let ma60 = getMA(datas.slice(-60), 59, 60)
-    let [pre, curr] = datas.slice(-2)
-    let zf = ((curr.h - curr.l) / pre.c / 1 * 100).toFixed(2)
+    let arrs = datas.concat(data)
+    let ma10 = getMA(arrs.slice(-10), 9, 10)
+    let ma20 = getMA(arrs.slice(-20), 19, 20)
+    let ma60 = getMA(arrs.slice(-60), 59, 60)
+    let [pre,last] = arrs.slice(-2)
+    let zf = ((last.h - last.l) / pre.c / 1 * 100).toFixed(2)
     return {
         code, type,
         data: [{
@@ -105,7 +109,7 @@ module.exports = function (app, connection) {
         console.log(`-------------开始执行 /api/update---------------`);
 
         let { query } = req
-        let dwm = query.type || 'd'
+        let dwm = query.type || 'd', category = {}
         // 获取到today还没被update的code
         let used = await SQL.getTables({
             connection,
@@ -120,13 +124,13 @@ module.exports = function (app, connection) {
         tds = tds.map(v => v.code)
         let unused = used.filter(v => !tds.includes(v.code))
 
-        let count = 0, num = 6
+        let count = 0, num = 1
         let fn = async function () {
             let item = unused.slice(count, count += num)
             if (item.length) {
                 let codes = item.map(v => v.code)
                 
-                let ret = await getContent({ codes, period: dwm })
+                let ret = await getContent({ codes, query })
                 // update是多个可以一起调，所以res有可能是多个,如果没有就是null
                 let res = ret.data
                 while(res && res.length) {

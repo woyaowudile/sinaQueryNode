@@ -2,12 +2,25 @@ const API = require('../api')
 const SQL = require('../sql')
 const { sendMail } = require('../utils/sendEmail')
 
-function getContent({codes, start, end, period='d'}) {
+function getContent({codes, start, end, query}) {
+    
+    let period = query.type || 'd'
+    /**
+     * 例如国庆节，这时候end应该是放假前的一天，
+     * 这个code比如，最后的时间是2018-12-31.
+     * 这时候无法去判断，这个code还有没有存入used表的价值
+     * 具体，参考 api/index/的get()
+     */
+    let days = (query.days / 1) || 0
+
     if (!start) {
-        start = 19920601 || someDay(0, '')
+        start = 19920601 || someDay(days, '')
     }
     if (!end) {
-        end = someDay(0, '')
+        end = someDay(days, '')
+    }
+    let others = {
+        days: someDay(days, '-')
     }
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -22,7 +35,8 @@ function getContent({codes, start, end, period='d'}) {
             codes,
             start,
             end,
-            period
+            period,
+            ...others
         }).then(async d => {
             console.log(`>> ${d.url} -> ${d.message}`);
             rl(d)
@@ -74,7 +88,7 @@ module.exports = function (app, connection) {
             let item = unused.slice(count, count += num)
             if (item.length) {
                 let codes = item.map(v => v.code)
-                let ret = await getContent({ codes, period: dwm })
+                let ret = await getContent({ codes, query })
                 let res = ret.data
                 
                 /**

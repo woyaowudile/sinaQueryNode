@@ -57,7 +57,8 @@ function handleResult({ error, name, callback }) {
     return result
 }
 
-function callback(url) {
+function callback(url, params) {
+    let endTime = params.days && new Date(`${params.days}`).getTime()
     return new Promise((rl, rj) => {
         request({
             url,
@@ -86,31 +87,42 @@ function callback(url) {
                 
                 if (!(datas instanceof Array)) {}
                 else if (TYPE === 'sohu') {
+
                     let arrs = []
+
                     datas.forEach(data => {
+
                         let { code, hq, msg, status, stat } = data
+
                         if (status === 0) {
-                            preClose = 0
-                            let codeName = code.split('_')[1]
-                            arrs.push({
-                                code: codeName,
-                                type: codeName.slice(0, 3),
-                                data: hq.map((level1, index1) => {
-                                    let [ d, o, c, zde, zd, l, h, v, e, hs ] = level1
-                                    let zf = ((h - l) / preClose / 1 * 100).toFixed(2)
-                                    let ma10 = $Methods.MA(hq, index1, 10)
-                                    let ma20 = $Methods.MA(hq, index1, 20)
-                                    let ma60 = $Methods.MA(hq, index1, 60)
-                                    preClose = c
-                                    return {
-                                        code: codeName,
-                                        hs: hs.slice(0, -1),
-                                        zd: zd.slice(0, -1),
-                                        d, o, c, zde, l, h, v, e,
-                                        zf, ma10, ma20, ma60
-                                    }
+                            let preClose = 0
+                            let [last] = hq.slice(-1)
+                            let lastTime = new Date(last[0]).getTime()
+
+                            if (endTime ? (lastTime >= endTime) : true) {
+                                let codeName = code.split('_')[1]
+                                arrs.push({
+                                    code: codeName,
+                                    type: codeName.slice(0, 3),
+                                    data: hq.map((level1, index1) => {
+                                        let [ d, o, c, zde, zd, l, h, v, e, hs ] = level1
+                                        let zf = ((h - l) / preClose / 1 * 100).toFixed(2)
+                                        let ma10 = $Methods.MA(hq, index1, 10)
+                                        let ma20 = $Methods.MA(hq, index1, 20)
+                                        let ma60 = $Methods.MA(hq, index1, 60)
+                                        preClose = c
+                                        return {
+                                            code: codeName,
+                                            hs: hs.slice(0, -1),
+                                            zd: zd.slice(0, -1),
+                                            d, o, c, zde, l, h, v, e,
+                                            zf, ma10, ma20, ma60
+                                        }
+                                    })
                                 })
-                            })
+                            } else {
+                                result.err = `好像下市了：${last[0]}`
+                            }
                         } else {
                             result.error = msg
                         }
@@ -205,7 +217,7 @@ module.exports = {
     },
     get: (params) => {
         TYPE = params.type || 'sohu'
-        return callback(URL[TYPE](params))
+        return callback(URL[TYPE](params), params)
     }
 }
 
