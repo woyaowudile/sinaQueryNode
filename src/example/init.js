@@ -4,7 +4,7 @@ const { sendMail } = require('../utils/sendEmail')
 
 function getContent({codes, start, end, query}) {
     
-    let period = query.type || 'd'
+    let period = query.dwm || 'd'
     /**
      * 例如国庆节，这时候end应该是放假前的一天，
      * 这个code比如，最后的时间是2018-12-31.
@@ -58,11 +58,18 @@ function someDay(days, symbol = '-') {
     return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`
 }
 
+
+/**
+ * 
+ * @param {Number} days 天数 表示从今天之前的第n天到今天
+ * @param {String} dwm 周期：'天d、周w、月m'
+ */
+
 module.exports = function (app, connection) {
     app.get('/api/init', async (req, res) => {
         console.log(`-------------开始执行 /api/init---------------`);
         let { query } = req
-        let dwm = query.type || 'd'
+        let dwm = query.dwm || 'd'
         
         // 获取到today还没被init的code
         let usedres = await SQL.getTables({

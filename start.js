@@ -13,7 +13,7 @@ const {
 // 设置跨域问题等
 var allowCrossDomain = function(req, res, next) {
     // 8080是vue项目的端口，这里相对于白名单. 所有设置 * 即可
-    res.header('Access-Control-Allow-Origin', 'http://localhost:8080');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:8080,http://localhost:8000');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');  
     res.header('Access-Control-Allow-Headers', 'Content-Type');  
     res.header('Access-Control-Allow-Credentials','true');  

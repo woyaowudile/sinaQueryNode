@@ -3,7 +3,7 @@ const SQL = require('../sql')
 const { sendMail } = require('../utils/sendEmail')
 
 function getContent({codes, start, end, query}) {
-    let period = query.type || 'd'
+    let period = query.dwm || 'd'
     let days = (query.days / 1) || 0
 
     if (!start) {
@@ -105,12 +105,19 @@ function someDay(days, symbol = '-') {
     return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`
 }
 
+
+/**
+ * 
+ * @param {String} dwm 周期：'天d、周w、月m'
+ * @param {String} dwm 周期：'天d、周w、月m'
+ */
+
 module.exports = function (app, connection) {
     app.get('/api/update', async (req, res) => {
         console.log(`-------------开始执行 /api/update---------------`);
 
         let { query } = req
-        let dwm = query.type || 'd'
+        let dwm = query.dwm || 'd'
         // 获取到today还没被update的code
         let used = await SQL.getTables({
             connection,
@@ -146,8 +153,8 @@ module.exports = function (app, connection) {
                             dwm
                         })
                     } else {
-                        await update({connection, item: level1, dwm})
-                        // await SQL.save({connection, item: level1, dwm})
+                        // await update({connection, item: level1, dwm})
+                        await SQL.save({connection, item: level1, dwm})
                         await SQL.setTables({
                             connection, code, type,
                             name: 'today',

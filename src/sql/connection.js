@@ -22,7 +22,7 @@ function handleDisconnection(callbacks) {
                 console.log(`-------------数据库链接成功---------------`);
                 
                 // 需要启动时导入的方法
-                callbacks && callbacks.forEach(v => v())
+                callbacks && callbacks.forEach(v => v(connection))
 
                 resolve(connection)
             }
