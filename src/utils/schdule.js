@@ -3,6 +3,8 @@ const schdule = require('node-schedule')
 
 const request = require('request')
 
+const { sendMail } = require('./sendEmail')
+
 
 module.exports = {
     nodeSchedule: function(connection) {
@@ -33,7 +35,7 @@ module.exports = {
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                 if (err) {
                 } else {
-                    email.sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`)
+                    sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`)
                     
                     request({
                         url: 'http://localhost:3334/api/update',
@@ -45,12 +47,12 @@ module.exports = {
                 }
             })
         })
-        // schdule.scheduleJob('00 30 2 * * 5', () => {
+        // schdule.scheduleJob('00 30 2 * * 6', () => {
         //     // 每周六 的4.30 更新
         //     connection.query(`DELETE FROM ig502_today WHERE type = 'week'`, async (err, result) => {
         //         if (err) {
         //         } else {
-        //             email.sendMail(`这周（${new Date().toLocaleString()}）的任务开始了`)
+        //             sendMail(`这周（${new Date().toLocaleString()}）的任务开始了`)
         //             await initQuery('week')
         //             update('week')
         //         }
@@ -61,7 +63,7 @@ module.exports = {
         //     connection.query(`DELETE FROM ig502_today WHERE type = 'month'`, async (err, result) => {
         //         if (err) {
         //         } else {
-        //             email.sendMail(`本月（${new Date().toLocaleString()}）的任务开始了`)
+        //             sendMail(`本月（${new Date().toLocaleString()}）的任务开始了`)
         //             await initQuery('month')
         //             update('month')
         //         }

@@ -166,7 +166,7 @@ module.exports = function (app, connection) {
                 setTimeout(() => {
                     console.log(`------${count}/${unused.length}------`);
                     fn()
-                }, 200)
+                }, 100)
             } else {
                 sendMail(`update： ${dwm} 成功！`)
                 console.log(`-------------执行完成 /api/update---------------`);
