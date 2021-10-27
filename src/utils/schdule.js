@@ -25,19 +25,18 @@ module.exports = {
         // 例： 每日的12.30 -> '00 30 12 * * *'
         schdule.scheduleJob({
             dayOfWeek: [1,2,3,4,5],
-            hour: [10],
-            minute: [23],
+            hour: [16],
+            minute: [30],
             second: [0]
         }, () => {
             // 每周的一二三四五 的 下午4：30
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                 if (err) {
                 } else {
-                    // email.sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`)
-                    console.log(`今天（${new Date().toLocaleString()}）的任务开始了 by new`);
-                    debugger
+                    email.sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`)
+                    
                     request({
-                        url: 'http://localhost:3334/api/query',
+                        url: 'http://localhost:3334/api/update',
                         method:'GET',
                         headers:{
                             'Content-Type':'text/json'
