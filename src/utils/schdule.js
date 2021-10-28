@@ -27,7 +27,7 @@ module.exports = {
         // 例： 每日的12.30 -> '00 30 12 * * *'
         schdule.scheduleJob({
             dayOfWeek: [1,2,3,4,5],
-            hour: [16],
+            hour: [17],
             minute: [30],
             second: [0]
         }, () => {

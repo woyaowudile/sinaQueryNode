@@ -141,7 +141,7 @@ module.exports = function (app, connection) {
                     fn()
                 }, 200)
             } else {
-                sendMail(`init： ${dwm} 成功！`)
+                sendMail(`sina init： ${dwm} 成功！`)
                 console.log(`-------------执行完成 /api/init---------------`);
             }
         }
