@@ -13,7 +13,16 @@ let alls = {
         if ($methods.entity(d0) > ($methods.entity(d1) * 2)) return
         if (!(d0.c > d1.c)) return
         if (!((d2.o < d1.c) && (d2.c > d1.c))) return
-        return [d0.d, d2.d]
+        let coords = [d0.d, d2.d]
+        results.push({
+            name: '亢龙有悔',
+            type: 'klyh',
+            code: d0.code,
+            buy: d2.d,
+            datas,
+            coords
+        })
+        // return [d0.d, d2.d]
         // let data = datas.slice(start - 30, start + 1)
     },
 

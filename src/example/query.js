@@ -4,11 +4,11 @@ const SQL = require('../sql')
 const $model = require('../model')
 
 function getModel({item: datas, date, dwm, type}) {
-    let coords = []
+    let coords = [], results = []
     let current = new Date(date).getTime()
     
     datas.forEach((level1, index1) => {
-        let { zd, d } = level1, results = []
+        let { zd, d } = level1
 
         let now = new Date(d).getTime()
         if (now < current) return
@@ -22,10 +22,7 @@ function getModel({item: datas, date, dwm, type}) {
 
         switch($model.YingYang(level1)) {
             case 1: 
-                let days = $model.isklyh(params)
-                if (days) {
-                    coords.push(days)
-                }
+                $model.isklyh(params)
                 break;
             case 2:
                 // let days = $model.isYjsd(params)
@@ -61,21 +58,32 @@ let resultsParams = {
     waiting: false,
     status: ''
 }
+let stash = {
+    useds = []
+}
 
 module.exports = function (app, connection) {
     app.get('/api/query', async (req, res) => {
         console.log(`-------------开始执行 /api/query---------------`);
 
         resultsParams.waiting = true
-
+		/* 
+			days：5（从5天前到今天的数据）
+			// date: ()
+			dwm: 年月日
+			codes：[603,601...] 对应的603下所有的数据从数据库拿到，会很慢
+		 */
         let { days, date, dwm = 'd', codes } = req.query
         let d = $model.someDay(days, '-')
         
-        let usedres = await SQL.getTables({
-            connection,
-            name: 'used',
-            conditions: `dwm='${dwm}'`
-        })
+        let usedres = stash.useds
+        if (usedres.length === 0) {
+            usedres = await SQL.getTables({
+                connection,
+                name: 'used',
+                conditions: `dwm='${dwm}'`
+            })
+        }
 
         let usedTypes = [...new Set(usedres.map(v => v.type))]
         usedTypes = usedTypes.filter(v => codes.indexOf(v) > -1)
@@ -97,14 +105,14 @@ module.exports = function (app, connection) {
                 // let conditions = `dwm='${dwm}' `
                 let conditions = ``
                 if (d) {
-                    conditions += `and d>='${d}'`
+                    conditions += `d>='${d}'`
                 }
                 const query_res = await SQL.getTables({
                     connection,
                     name: type,
                     conditions
                 })
-                
+                let code  = ''
                 query_res.forEach(v => {
                     let { code } = v
                     if (resultsAllCodes[code]) {
@@ -167,15 +175,20 @@ module.exports = function (app, connection) {
         let fn = async function () {
             let item = resultsAllCodes[keys[++count]]
             if (item && result.data.length < size) {
+            // if (item) {
                 let { dwm, type, code } = item[0]
 
                 const res = getModel({item, date, dwm, type})
                 
-                if (res.coords.length > 0) {
+                if (res.length > 0) {
                     num = count + 1
-                    result.data.push({
-                        [code]: res
-                    })
+                    if (result.data[code]) {
+                        result.data[code] = res
+                    } else {
+                        result.data.push({
+                            [code]: res
+                        })
+                    }
                 }
                 setTimeout(() => {
                     console.log(`------${count+1}/${keys.length}(${result.data.length}/${size})------`);

@@ -98,8 +98,8 @@ function callback(url, params) {
                             let preClose = 0
                             let [last] = hq.slice(-1)
                             let lastTime = new Date(last[0]).getTime()
-
-                            if (endTime ? (lastTime >= endTime) : true) {
+                            let sub = 1000 * 3600 * 24 * 10 // 如果相差10天以内就不是下市
+                            if (endTime ? ((lastTime + sub) >= endTime) : true) {
                                 let codeName = code.split('_')[1]
                                 arrs.push({
                                     code: codeName,

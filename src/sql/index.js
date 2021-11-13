@@ -101,7 +101,7 @@ function updateSQL({ connection, name, values, conditions, callback }) {
     })
 }
 function deleteSQL({ connection, name, conditions, callback }) {
-    // DELETE FROM ig502_today WHERE type = 'day'
+    // DELETE FROM ig502_today WHERE dwm = 'd'
     return new Promise((rl, rj) => {
         let sql = `DELETE FROM ${name}`
         if (conditions) {
@@ -185,14 +185,27 @@ function setTables({ connection, name, code, type, dwm }) {
 //         })
 //     })
 // }
-
+function deleteEle(data) {
+    let arr = ['zf', 'ma10', 'ma20', 'ma60'], result = {
+        keys: [],
+        values: []
+    }
+    Object.keys(data).forEach(v => {
+        if (!arr.includes(v)) {
+            result.keys.push(v)
+            result.values.push(data[v])
+        }
+    })
+    return result
+}
 function save({ connection, item, dwm }) {
     return new Promise(async (rl, rj) => {
         let { code, data, type } = item
         
-        let keys = `${Object.keys(data[0])},type,dwm`
+        let keys = `${deleteEle(data[0]).keys},type,dwm`
         let values = data.map(level1 => {
-            return `(${Object.values(level1).map(v => `'${v}'`)},${type},'${dwm}')`
+
+            return `(${deleteEle(level1).values.map(v => `'${v}'`)},${type},'${dwm}')`
         })
 
         await insertSQL({
@@ -215,7 +228,12 @@ function update({ connection, item, dwm }) {
     let { d } = data[0]
     let name = `${base}_${type}`
     
-    let values = Object.keys(data[0]).map(v => {
+    let row ={...data[0]}
+    delete row.zf
+    delete row.ma10
+    delete row.ma20
+    delete row.ma60
+    let values = Object.keys(row).map(v => {
         return `${v}='${data[0][v]}'`
     })
     let conditions = `code='${code}' and dwm='${dwm}' and d='${d}'`
