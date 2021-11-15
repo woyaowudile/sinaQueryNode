@@ -49,7 +49,7 @@ function hasTablesSql({ connection, name}) {
             eval(result.code)(result)
         })
     })
-}
+} 
 
 /**
  * 

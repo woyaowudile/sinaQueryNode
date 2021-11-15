@@ -4,7 +4,7 @@ const $methods = require('./methods')
 let alls = {
     ...$methods,
     
-    isklyh({ results, datas, start, dwm }) {
+    isKlyh({ results, datas, start, dwm }) {
         if (dwm !== 'd') return
         let [ d0, d1, d2 ] = datas.slice(start, start + 3 + 1)
         if ($methods.YingYang(d0) !== 1) return
@@ -14,14 +14,19 @@ let alls = {
         if (!(d0.c > d1.c)) return
         if (!((d2.o < d1.c) && (d2.c > d1.c))) return
         let coords = [d0.d, d2.d]
-        results.push({
-            name: '亢龙有悔',
-            type: 'klyh',
-            code: d0.code,
-            buy: d2.d,
-            datas,
-            coords
-        })
+        let index = results.findIndex(v => v.code === d0.code)
+        if (index > -1) {
+            results[index].coords.push(coords)
+        } else {
+            results.push({
+                name: '亢龙有悔',
+                type: 'klyh',
+                code: d0.code,
+                buy: d2.d,
+                datas,
+                coords: [coords]
+            })
+        }
         // return [d0.d, d2.d]
         // let data = datas.slice(start - 30, start + 1)
     },
