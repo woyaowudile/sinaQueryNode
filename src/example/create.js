@@ -122,13 +122,30 @@ function addTables(connection) {
 
 function addOtherTable(connection) {
     return new Promise(async (rl, rj) => {
-        let arr = [
+        let arr1 = [
             'id int auto_increment PRIMARY KEY',
             'code varchar(10)',
             'type varchar(10)',
             'dwm varchar(10)'
         ]
-        let names = [`${SQL.base}_fail`, `${SQL.base}_used`, `${SQL.base}_today`]
+        let arr2 = [
+            'id int auto_increment PRIMARY KEY',
+            'name varchar(10)',
+            'name_key varchar(10)',
+            'buy varchar(10)',
+            'buy_date varchar(10)',
+            'sale_date varchar(10)',
+            'code varchar(10)',
+            'type varchar(10)',
+            'dwm varchar(10)',
+            'remark varchar(255)'
+        ]
+        let names = [
+            { word: `${SQL.base}_fail`, conditions: arr1 },
+            { word: `${SQL.base}_used`, conditions: arr1 },
+            { word: `${SQL.base}_today`, conditions: arr1 },
+            { word: `${SQL.base}_checked`, conditions: arr2 },
+        ]
         console.log(`>>>>>>>>>>>> 共${names.length}条 准备创建新表中...`);
         let count = -1
         let fn = async function () {
@@ -136,8 +153,8 @@ function addOtherTable(connection) {
             if (item) {
                 await createTables({
                     connection,
-                    name: item,
-                    createConditions: `${arr}`,
+                    name: item.word,
+                    createConditions: item.conditions,
                     count: `${count+1}/${names.length}`
                 })
                 fn()
@@ -160,7 +177,7 @@ module.exports = function (app, connection) {
         await addTables(connection)
 
         await addOtherTable(connection)
-        
         console.log(`-------------执行完成 /api/createNewTables---------------`);
+        res.send({ code: 0, message: '创建成功' })
     })
 }

@@ -31,7 +31,7 @@ module.exports = {
             minute: [30],
             second: [0]
         }, () => {
-            // 每周的一二三四五 的 下午4：30
+            // 每周的一二三四五 的 下午5：30
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                 if (err) {
                 } else {

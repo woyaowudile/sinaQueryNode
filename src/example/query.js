@@ -3,7 +3,7 @@ const SQL = require("../sql");
 
 const $model = require("../model");
 
-function getModel({ item: datas, date, dwm, modelName = "isKlyh" }) {
+function getModel({ item: datas, date, dwm }) {
   let coords = [],
     results = [];
   let current = new Date(date).getTime();
@@ -20,14 +20,14 @@ function getModel({ item: datas, date, dwm, modelName = "isKlyh" }) {
       start: index1,
       results,
     };
-    let name = $model[modelName];
+
     switch ($model.YingYang(level1)) {
       case 1:
-        // $model.isklyh(params)
-        name && name(params);
+        $model.isKlyh(params);
+        // name && name(params);
         break;
       case 2:
-        // let days = $model.isYjsd(params)
+        $model.isYjsd(params);
         if (zd <= 9.5) {
         } else {
         }
@@ -58,6 +58,7 @@ function getModel({ item: datas, date, dwm, modelName = "isKlyh" }) {
  */
 let resultsAllCodes = {};
 let resultsParams = {
+  init: true,
   codes: [],
   waiting: false,
   status: "",
@@ -66,12 +67,25 @@ let stash = {
   useds: [],
   types: {},
 };
-
+function getSend({ code = 0, message = "成功了", result, data }) {
+  return { code, message, result, data };
+}
 module.exports = function (app, connection) {
   app.get("/api/query", async (req, res) => {
     console.log(`-------------开始执行 /api/query---------------`);
 
-    resultsParams.waiting = true;
+    if (resultsParams.waiting) {
+      res.send(
+        getSend({
+          result: {
+            code: 1,
+            message: `请等待query接口完成（${resultsParams.status}）`,
+            result: [],
+          },
+        })
+      );
+      return;
+    }
     /* 
 			days：5（从5天前到今天的数据）
 			// date: ()
@@ -87,7 +101,169 @@ module.exports = function (app, connection) {
       index = 0,
       count = -1,
       codes = "601,603",
-      modelName,
+      models,
+    } = req.query;
+    let d = $model.someDay(days, "-");
+
+    const sendResults = {
+      code: 0,
+      index: 0,
+      message: "成功",
+      data: [],
+    };
+    let datas = resultsParams.codes.filter((v) => v.dwm === dwm);
+    datas = datas.slice(index, datas.length);
+
+    const fn = () => {
+      let isEnd = sendResults.data.length >= size;
+      const item = datas[++count];
+      if (!item || isEnd) {
+        const flag = resultsParams.codes.length;
+        const message = flag ? "成功了" : "还没有预查数据";
+        sendResults.message = message;
+        sendResults.index = count;
+        sendResults.code = flag ? 0 : 1;
+        res.send(getSend({ result: sendResults }));
+      } else {
+        let { buy, code, datas, coords } = item;
+        let cds = coords
+          .map((v) => {
+            let compireTime = new Date(date).getTime();
+            let nowTime = new Date(v[1]).getTime();
+            if (models.includes(v[0]) && nowTime >= compireTime) {
+              return v;
+            }
+          })
+          .filter((v) => v);
+        if (cds.length) {
+          sendResults.data.push({ buy, code, datas, dwm, coords: cds });
+        }
+        fn();
+      }
+    };
+    fn();
+  });
+
+  app.get("/api/query/table", async (req, res) => {
+    const result = await SQL.getTables({
+      connection,
+      name: `checked`,
+      conditions: ``,
+    });
+    res.send(getSend({ result: getSend({ data: result }) }));
+  });
+  app.post("/api/query/chart", async (req, res) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      const arrs = JSON.parse(body);
+      let results = [];
+      let count = -1;
+      let fn = async () => {
+        let item = arrs[++count];
+        if (!item) {
+          res.send(getSend({ result: getSend({ data: results }) }));
+        } else {
+          const res = await SQL.getTables({
+            connection,
+            name: item.type,
+            conditions: `dwm='${item.dwm}' and code='${item.code}' and d >= '${item.buy}'`,
+          });
+          results.push({ id: item.id, datas: res });
+          fn();
+        }
+      };
+      fn();
+      // const resultes = resul
+    });
+  });
+  app.post("/api/query/add", async (req, res) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      const arrs = JSON.parse(body);
+      const names = Object.keys(arrs[0]);
+      const values = arrs.map((v) => {
+        let keys = Object.keys(v);
+        return `(${keys.map((d) => `'${v[d]}'`)})`;
+      });
+      let msg = "",
+        code = 0;
+      await SQL.insertSQL({
+        connection,
+        name: `${SQL.base}_checked(${names.map((v) => v)})`,
+        values: `${values}`,
+      })
+        .then((d) => {
+          msg = `>> checked add ${arrs[0].code} ${d.message}`;
+          console.log(msg);
+        })
+        .catch((err) => {
+          msg = `>> checked add ${arrs[0].code} ${err.message}`;
+          code = 1;
+          console.log(msg);
+        });
+      res.send(getSend({ result: getSend({ message: msg, code }), code }));
+    });
+  });
+  app.delete("/api/query/delete", async (req, res) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      const { id, code, models } = JSON.parse(body);
+      let conditions = "";
+      if (id) {
+        conditions += `id = ${id}`;
+      }
+      if (code) {
+        conditions += `code = ${code}`;
+      }
+      if (models) {
+        const arrs = models.split(",");
+        conditions += ` and name_key in ('${arrs}') `;
+      }
+      await SQL.deleteSQL({
+        connection,
+        name: `${SQL.base}_checked`,
+        conditions,
+      })
+        .then((d) => {
+          msg = `>> checked delete ${id} ${d.message}`;
+          console.log(msg);
+        })
+        .catch((err) => {
+          msg = `>> checked delete ${id} ${err.message}`;
+          console.log(msg);
+        });
+      res.send(getSend({ result: getSend({ message: msg }) }));
+    });
+  });
+
+  app.get("/api/querybefore", async (req, res) => {
+    if (!resultsParams.init) {
+      res.send(getSend({ result: { code: 0, message: "已经预处理成功，请勿重复" } }));
+    }
+    console.log(`-------------开始执行 /api/query---------------`);
+
+    resultsParams.init = false;
+    resultsParams.waiting = true;
+
+    let {
+      days,
+      date,
+      dwm = "d",
+      size = 25,
+      // page = 1,
+      index = 0,
+      count = -1,
+      codes = "601,603",
+      models,
     } = req.query;
     let d = $model.someDay(days, "-");
 
@@ -108,19 +284,11 @@ module.exports = function (app, connection) {
 
     let total = usedTypes.length;
 
-    let num = index / 1;
-    let result = {
-      code: 0,
-      message: "",
-      data: {},
-    };
-
-    let fn = async function () {
-      // 1. 通过大类，获取小类： 601 -> 601999、601998...
+    let fn = async () => {
       let item = usedTypes[++count];
       if (!item) {
         // end
-        res.send({code: 0, message: '成功', result})
+        callback();
       } else {
         if (!stash.types[item]) {
           let distinct = "distinct(code)";
@@ -131,129 +299,51 @@ module.exports = function (app, connection) {
           });
           stash.types[item] = distinctCodes.data.map((v) => v.code).sort();
         }
-        let callback = async function () {
-            if (page > 1 && num < 1) {
-              num = size
-            }
-            let spliceAfterCodes = stash.types[item].slice((page - 1) * num, page * size),
-            itemResults = {};
-            if (!spliceAfterCodes.length) {
-                num = 0
-                fn()
-            } else {
-
-              let conditions = `code in (${spliceAfterCodes})`;
-              if (d) {
-                  conditions += `and d>='${d}'`;
-              }
-              const temporaryRes = await SQL.getTables({
-                  connection,
-                  name: item,
-                  conditions,
-              });
-              temporaryRes.forEach((v) => {
-                  let { code } = v;
-                  if (itemResults[code]) {
-                  itemResults[code].push(v);
-                  } else {
-                  itemResults[code] = [v];
-                  }
-              });
-              Object.keys(itemResults).forEach((code, i) => {
-                  let modelRes = getModel({
-                    item: itemResults[code],
-                    date,
-                    dwm,
-                    modelName,
-                  });
-                  result.data[code] = modelRes
-                  num = i + 1
-                  let isFullLength = Object.keys(result.data).length
-                  if (isFullLength >= size) {
-                    let length = stash.types[item].length
-                    let isEnd = (page * num) >= length
-                    result.count = isEnd ? count : count - 1;
-                    result.index = isEnd ? 0 : num;
-                    result.total = length
-                    res.send({code: 0, message: '成功', result})
-                    return;
-                  }
-              })
-              
-              let isFullLength = Object.keys(result.data).length
-              if (isFullLength < size) {
-                callback()
-              }
-            }
-        }
-        callback()
+        fn();
       }
     };
     fn();
-  });
 
-  app.get("/api/querymodel", async (req, res) => {
-    console.log(`-------------开始执行 /api/query---------------`);
-    if (resultsParams.waiting) {
-      res.send({
-        code: 0,
-        message: `请等待query接口完成（${resultsParams.status}）`,
-        data: [],
-      });
-    }
-    if (Object.keys(resultsAllCodes).length === 0) {
-      res.send({
-        code: 0,
-        message: `resultsAllCodes还没有数据`,
-        data: [],
-      });
-    }
-
-    let { days, date, dwm = "d", size = 10, page, index = 0 } = req.query;
-    let keys = Object.keys(resultsAllCodes);
-    keys = keys.slice(index, keys.length);
-
-    let count = -1,
-      num = 0;
-    let result = {
-      code: 0,
-      message: "成功",
-      index: index / 1,
-      data: [],
+    //
+    let callback = async () => {
+      let arrs = Object.keys(stash.types);
+      let lenth = arrs.length;
+      getDatasFn(arrs, lenth);
     };
 
-    let fn = async function () {
-      let item = resultsAllCodes[keys[++count]];
-      if (item && result.data.length < size) {
-        // if (item) {
-        let { dwm, type, code } = item[0];
-
-        const res = getModel({ item, date, dwm, type });
-
-        if (res.length > 0) {
-          num = count + 1;
-          if (result.data[code]) {
-            result.data[code] = res;
-          } else {
-            result.data.push({
-              [code]: res,
-            });
-          }
-        }
-        setTimeout(() => {
-          console.log(
-            `------${count + 1}/${keys.length}(${
-              result.data.length
-            }/${size})------`
-          );
-          fn();
-        }, 50);
+    let getDatasFn = async (arrs, lenth) => {
+      let name = arrs[--lenth];
+      let item = stash.types[name];
+      if (!item) {
+        resultsParams.waiting = false;
+        console.log("-----预处理成功");
+        res.send(getSend({ result: { code: 0, message: "预处理成功" } }));
       } else {
-        result.index += num;
-        res.send(result);
-        console.log(`-------------执行完成 /api/query---------------`);
+        let conditions = `code in (${item}) and dwm='${dwm}'`;
+        const res = await SQL.getTables({
+          connection,
+          name,
+          conditions,
+        });
+        let datas = {};
+        res.forEach((v) => {
+          let { code } = v;
+          if (datas[code]) {
+            datas[code].push(v);
+          } else {
+            datas[code] = [v];
+          }
+        });
+        const results = Object.keys(datas)
+          .map((v) => {
+            const data = datas[v];
+            const res = getModel({ item: data, date, dwm });
+            return res[0];
+          })
+          .filter((v) => v);
+        resultsParams.codes = resultsParams.codes.concat(results);
+        getDatasFn(arrs, lenth);
       }
     };
-    fn();
   });
 };
