@@ -434,7 +434,7 @@ let alls = {
             let everys = hpDatas.every((level2) => {
                 return bMin * 1.3 > Math.min(level2.c, level2.o);
             });
-            let isHp = hp(hpDatas, hpDatas.length, hpDatas.length, (arr) => {
+            let isHp = $methods.hp(hpDatas, hpDatas.length, hpDatas.length, (arr) => {
                 if (!arr[arr.length - 1]) {
                     return;
                 }

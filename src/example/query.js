@@ -348,7 +348,7 @@ module.exports = function (app, connection) {
                     conditions,
                 });
                 let datas = {};
-                res.forEach((v) => {
+                res.forEach((v, i) => {
                     const { code } = v;
                     // 将需要转成数字的取出来
                     const newV = {

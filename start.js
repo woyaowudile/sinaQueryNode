@@ -28,6 +28,8 @@ app.listen(port, async () => {
     console.log(`http://localhost:${port}/api/init`);
     console.log(`http://localhost:${port}/api/update`);
     console.log(`http://localhost:${port}/api/query`);
+    console.log(`http://localhost:${port}/api/querybefore`);
+    console.log(`http://localhost:${port}/api/query`);
     console.log(`http://localhost:${port}/api/createNewTables`);
     console.log("-------------常用链接地址---------------");
     console.log("---\n--\n-");
