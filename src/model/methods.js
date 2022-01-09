@@ -1,5 +1,6 @@
 /** @format */
-
+const fs = require("fs");
+const nodeExcel = require("node-xlsx");
 class Methods {
     constructor() {}
     YingYang(data) {
@@ -161,6 +162,38 @@ class Methods {
         let month = after.getMonth() + 1 + "";
         let date = after.getDate() + "";
         return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
+    }
+
+    datasToExcel(codes, dwm) {
+        if (!codes.length) {
+            console.log("没有要存入excel的数据");
+            return;
+        }
+        let lists = [];
+        codes.forEach((v) => {
+            let keys = Object.keys(v);
+            let values = Object.values(v);
+            keys.map((d) => {
+                let datas = v[d];
+                lists.push({
+                    name: d,
+                    data: [Object.keys(datas[0]), ...datas.map((d) => Object.values(d))],
+                });
+            });
+        });
+        try {
+            const buffer = nodeExcel.build(lists);
+            fs.writeFile(`stash_${dwm}.xlsx`, buffer, (err) => {
+                if (err) throw err;
+                console.log("》》 -创建excel完成- 《《");
+            });
+        } catch (error) {
+            console.log("error", error);
+        }
+    }
+    excelToDatas(dwm) {
+        const sheets = nodeExcel.parse(`stash_${dwm}.xlsx`);
+        return sheets;
     }
 }
 

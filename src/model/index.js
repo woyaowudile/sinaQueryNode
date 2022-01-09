@@ -1,5 +1,6 @@
 /** @format */
 
+const SQL = require("../sql");
 const $methods = require("./methods");
 
 let count = 0;
@@ -459,6 +460,117 @@ let alls = {
         let date = new Date().toLocaleDateString();
         let coords = ["isYylm", d1.d, date.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: date });
+    },
+    async quertBefore(query, connection) {
+        let {
+            days,
+            date,
+            dwm = "d",
+            size = 25,
+            // page = 1,
+            index = 0,
+            count = -1,
+            // codes = "603",
+            codes = "600,601,603,000,002",
+            models,
+        } = query;
+        let resultsParams = {
+            init: true,
+            codes: [],
+            waiting: false,
+            status: "",
+        };
+        let stash = {
+            useds: [],
+            types: {},
+        };
+        // let d = $methods.someDay(days, "-");
+
+        // 1. 获取到所有的类型
+        let usedres = await SQL.getTables({
+            connection,
+            name: "used",
+            conditions: `dwm='${dwm}'`,
+        });
+
+        let usedTypes = [...new Set(usedres.map((v) => v.type))];
+        // 2. 过滤出条件下的类型，例如：601、603...
+        usedTypes = usedTypes.filter((v) => codes.indexOf(v) > -1);
+
+        // usedTypes = usedTypes.filter(v => !resultsParams.codes.some(d => d[v]))
+
+        let total = usedTypes.length;
+
+        let fn = async () => {
+            let item = usedTypes[++count];
+            if (!item) {
+                // end
+                callback();
+            } else {
+                if (!stash.types[item]) {
+                    let distinct = "distinct(code)";
+                    const distinctCodes = await SQL.querySQL({
+                        connection,
+                        name: `${SQL.base}_${item}`,
+                        distinct,
+                    });
+                    stash.types[item] = distinctCodes.data.map((v) => v.code).sort();
+                }
+                fn();
+            }
+        };
+        fn();
+
+        //
+        let callback = async () => {
+            let arrs = Object.keys(stash.types);
+            let lenth = arrs.length;
+            getDatasFn(arrs, lenth);
+        };
+
+        let getDatasFn = async (arrs, lenth) => {
+            let name = arrs[--lenth];
+            let item = stash.types[name];
+            if (!item) {
+                console.log("-----预处理成功，生成Excel中");
+                $methods.datasToExcel(resultsParams.codes, dwm);
+                resultsParams.codes = [];
+            } else {
+                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365)}'`;
+                const res = await SQL.getTables({
+                    connection,
+                    name,
+                    conditions,
+                });
+                let datas = {};
+                res.forEach((v, i) => {
+                    const { code } = v;
+                    // 将需要转成数字的取出来
+                    const newV = {
+                        ...v,
+                        c: v.c / 1,
+                        o: v.o / 1,
+                        h: v.h / 1,
+                        l: v.l / 1,
+                        v: v.v / 1,
+                    };
+                    if (datas[code]) {
+                        datas[code].push(newV);
+                    } else {
+                        datas[code] = [newV];
+                    }
+                });
+                // const results = Object.keys(datas)
+                //     .map((v) => {
+                //         const data = datas[v];
+                //         const res = getModel({ item: data, date, dwm });
+                //         return res[0];
+                //     })
+                //     .filter((v) => v);
+                resultsParams.codes = resultsParams.codes.concat(datas);
+                getDatasFn(arrs, lenth);
+            }
+        };
     },
 };
 
