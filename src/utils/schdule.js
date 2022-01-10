@@ -3,6 +3,7 @@
 const schdule = require("node-schedule");
 
 const request = require("request");
+const { sendMail } = require("./sendEmail");
 
 module.exports = {
     nodeSchedule: function (connection) {

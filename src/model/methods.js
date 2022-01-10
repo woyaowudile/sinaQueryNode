@@ -1,6 +1,17 @@
 /** @format */
 const fs = require("fs");
 const nodeExcel = require("node-xlsx");
+const { sendMail } = require("../utils/sendEmail");
+
+function getMailHtml(data, type, dwm) {
+    let divbox = ``;
+    for (let k in data) {
+        divbox += `<div style="display:flex"><span style="flex: 1">${k}：</span><span style="flex: 1">${data[k]}</span></div>`;
+    }
+    let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
+    return html;
+}
+
 class Methods {
     constructor() {}
     YingYang(data) {
@@ -163,7 +174,11 @@ class Methods {
         let date = after.getDate() + "";
         return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
     }
-
+    compareTime(dataA, dataB) {
+        let atime = new Date(dataA).getTime();
+        let btime = new Date(dataB).getTime();
+        return btime > atime;
+    }
     datasToExcel(codes, dwm) {
         if (!codes.length) {
             console.log("没有要存入excel的数据");
@@ -191,14 +206,18 @@ class Methods {
             console.log("error", error);
         }
     }
-    downloadExcel(datas, dwm) {
+    downloadExcel(datas, dwm, mail) {
         return new Promise((rl, rj) => {
             let lists = [],
-                newDatas = {};
+                newDatas = {},
+                counts = {},
+                html = "";
             datas.forEach((v) => {
                 const coords = v.coords;
                 coords.forEach((d) => {
                     const [name] = d;
+                    const flag = this.compareTime(this.someDay(7), d[1]);
+                    flag && (counts[name] = (counts[name] || 0) + 1);
                     if (newDatas[name]) {
                         newDatas[name].push([v.code, d[1], d[2]]);
                     } else {
@@ -218,6 +237,8 @@ class Methods {
                 const buffer = nodeExcel.build(lists);
                 fs.writeFile(excelName, buffer, (err) => {
                     if (err) throw err;
+                    html = getMailHtml(counts, mail, dwm);
+                    sendMail(html);
                     console.log("》》 -创建download-excel完成- 《《");
                 });
                 rl(excelName);

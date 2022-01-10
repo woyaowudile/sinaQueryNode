@@ -181,8 +181,8 @@ module.exports = function (app, connection) {
                     fn();
                 }, 100);
             } else {
-                quertBefore({ dwm }, connection);
-                sendMail(`sina update： ${dwm} 成功！`);
+                quertBefore({ dwm, mail: "update" }, connection);
+                // sendMail(`sina update： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/update---------------`);
             }
         };

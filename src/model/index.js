@@ -474,6 +474,7 @@ class AllsClass {
             // codes = "603",
             codes = "600,601,603,000,002",
             models,
+            mail = "query-before",
         } = query;
         let resultsParams = {
             init: true,
@@ -537,7 +538,7 @@ class AllsClass {
                 console.log("-----预处理成功，生成Excel中");
                 // $methods.datasToExcel(resultsParams.codes, dwm);
                 console.log("-----生成download-Excel中");
-                $methods.downloadExcel(resultsParams.downloads, dwm);
+                $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                 resultsParams.codes = [];
             } else {
                 let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365)}'`;
