@@ -21,7 +21,9 @@ function exportResults({ results, datas, dwm, coords, startDay, buyDate }) {
         });
     }
 }
-let alls = {
+
+class AllsClass {
+    constructor() {}
     isKlyh({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let [d0, d1, d2] = $methods.getModelLengthData(datas, start, 3);
@@ -33,7 +35,7 @@ let alls = {
         if (!(d2.o < d1.c && d2.c > d1.c)) return;
         let coords = ["isKlyh", d0.d, d2.d];
         exportResults({ results, datas, dwm, coords, startDay: d0, buyDate: d2 });
-    },
+    }
 
     isYjsd({ results, datas, start, dwm }) {
         /**
@@ -56,7 +58,7 @@ let alls = {
 
         let coords = ["isYjsd", d0.d, d3.d];
         exportResults({ results, datas, dwm, coords, startDay: d0, buyDate: d3 });
-    },
+    }
     isQx1({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         // 七星中是否可以存在 十字星(即开盘价 === 收盘价)
@@ -74,7 +76,7 @@ let alls = {
 
         let coords = ["isQx1", d1.d, d7.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: d7 });
-    },
+    }
     isQx2({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         // 七星中是否可以存在 十字星(即开盘价 === 收盘价)
@@ -90,7 +92,7 @@ let alls = {
         // return [d1, d2, d3, d4, d5, d6, d7];
         let coords = ["isQx2", d1.d, d7.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: d7 });
-    },
+    }
     isFkwz({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let [d1, d2, d3] = $methods.getModelLengthData(datas, start, 3);
@@ -101,7 +103,7 @@ let alls = {
         if (!(d3.o > d2.c && d3.c > d2.o)) return;
         let coords = ["isFkwz", d2.d, d3.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d3 });
-    },
+    }
     isYydl({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         // 因为d5后的某一天要是阳线，但不确定是哪一天
@@ -124,7 +126,7 @@ let alls = {
         if (!find) return;
         let coords = ["isYydl", d1.d, find.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: find });
-    },
+    }
     isCsfr({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let [d1, d2] = $methods.getModelLengthData(datas, start, 2);
@@ -134,7 +136,7 @@ let alls = {
         if (!(d2.h > d1.h && d2.l > d1.l && d2.c > d1.o)) return;
         let coords = ["isCsfr", d1.d, d2.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: d2 });
-    },
+    }
     isGsdn({ results, datas, start, dwm }) {
         // 1. 上升趋势中，
         // 2. 是阶段的顶点不可买，如果有缺口可以
@@ -150,7 +152,7 @@ let alls = {
         if (!(d2.v < d3.v && d4.v < d3.v && d5.v < d3.v && d6.v < d3.v)) return;
         let coords = ["isGsdn", d3.d, d6.d];
         exportResults({ results, datas, dwm, coords, startDay: d3, buyDate: d6 });
-    },
+    }
     isDy({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         // 盈利： 17-20%
@@ -167,7 +169,7 @@ let alls = {
         if (!(d7.c > d2.c && d7.c > d3.c && d7.c > d4.c && d7.c > d5.c && d7.c > d6.o)) return;
         let coords = ["isDy", d2.d, d7.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d7 });
-    },
+    }
     isFhlz({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         // 盈利： 10%+
@@ -178,7 +180,7 @@ let alls = {
         if (!(d3.c < d2.c && d4.c > d2.c)) return;
         let coords = ["isFhlz", d2.d, d4.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d4 });
-    },
+    }
     isLzyy({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let [d1, d2, d3, d4] = $methods.getModelLengthData(datas, start - 1, 4);
@@ -190,7 +192,7 @@ let alls = {
         if (!($methods.entity(d3) >= 0.03 || $methods.zdf([d2, d3]) > 9.7)) return;
         let coords = ["isLzyy", d2.d, d4.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d4 });
-    },
+    }
     isCBZ({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start, 7);
@@ -206,7 +208,7 @@ let alls = {
         if (!flag) return;
         let coords = ["isCBZ", d1.d, d2.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: d2 });
-    },
+    }
     isFlzt({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start - 1, 4);
@@ -221,7 +223,7 @@ let alls = {
         if (!(d4.c > max)) return;
         let coords = ["isFlzt", d2.d, d4.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d4 });
-    },
+    }
     isLahm({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start - 4, 5);
@@ -233,7 +235,7 @@ let alls = {
         if (!(val.c > result.o)) return;
         let coords = ["isLahm", result.d, val.d];
         exportResults({ results, datas, dwm, coords, startDay: result, buyDate: val });
-    },
+    }
     isSlbw0({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start, 4);
@@ -258,7 +260,7 @@ let alls = {
         if ($methods.zs(res, start + 4, 10, d3.l)) return;
         let coords = ["isSlbw0", result.d, d4.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d4 });
-    },
+    }
     isSlbw1({ results, datas, start, dwm }) {
         // 20%
         if (dwm !== "d") return;
@@ -306,7 +308,7 @@ let alls = {
 
         let coords = ["isSlbw1", current.d, buy.d];
         exportResults({ results, datas, dwm, coords, startDay: current, buyDate: buy });
-    },
+    }
     isSlbw2({ results, datas, start, dwm }) {
         if (dwmType !== "day") return;
         let qsData = qs(data, start, 48, 12);
@@ -343,7 +345,7 @@ let alls = {
 
         results.push([code, current.d, buyDate(buy.d, 1), "神龙摆尾2"]);
         console.log(`${code}神龙摆尾2`, current.d, buyDate(buy.d, 1), `累计第 ${++count} 个`);
-    },
+    }
     isSlbw3({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start - 1, 4);
@@ -359,7 +361,7 @@ let alls = {
         if (!(d4.v < d3.v)) return;
         let coords = ["isSlbw3", d2.d, d4.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d4 });
-    },
+    }
     isSlbw4({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start, 12);
@@ -376,7 +378,7 @@ let alls = {
         if (!find) return;
         let coords = ["isSlbw4", d2.d, find.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: find });
-    },
+    }
     isSlqs({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let res = $methods.getModelLengthData(datas, start - 1, 3);
@@ -389,7 +391,7 @@ let alls = {
 
         let coords = ["isSlqs", d2.d, d3.d];
         exportResults({ results, datas, dwm, coords, startDay: d2, buyDate: d3 });
-    },
+    }
     isG8M1({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
         // 10\60
@@ -401,7 +403,7 @@ let alls = {
         if (!(current.c > ma60)) return;
         let coords = ["isG8M1", current.d];
         exportResults({ results, datas, dwm, coords, startDay: current, buyDate: current });
-    },
+    }
     isYylm({ results, datas, start, dwm }) {
         if (dwmType !== "month") return;
         // 下跌要2年左右
@@ -445,7 +447,6 @@ let alls = {
         });
         if (!flag) return;
         let [cy] = d1.d.split("-");
-        debugger;
         let ok = results.every((level1) => {
             let [a1, a2, a3, a4] = level1;
             if (a1 === code && a4 === "鱼跃龙门") {
@@ -460,7 +461,7 @@ let alls = {
         let date = new Date().toLocaleDateString();
         let coords = ["isYylm", d1.d, date.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: date });
-    },
+    }
     async quertBefore(query, connection) {
         let {
             days,
@@ -477,6 +478,7 @@ let alls = {
         let resultsParams = {
             init: true,
             codes: [],
+            downloads: [],
             waiting: false,
             status: "",
         };
@@ -533,7 +535,9 @@ let alls = {
             let item = stash.types[name];
             if (!item) {
                 console.log("-----预处理成功，生成Excel中");
-                $methods.datasToExcel(resultsParams.codes, dwm);
+                // $methods.datasToExcel(resultsParams.codes, dwm);
+                console.log("-----生成download-Excel中");
+                $methods.downloadExcel(resultsParams.downloads, dwm);
                 resultsParams.codes = [];
             } else {
                 let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365)}'`;
@@ -547,7 +551,10 @@ let alls = {
                     const { code } = v;
                     // 将需要转成数字的取出来
                     const newV = {
-                        ...v,
+                        d: v.d,
+                        code: v.code,
+                        zd: v.zd,
+                        // ...v,
                         c: v.c / 1,
                         o: v.o / 1,
                         h: v.h / 1,
@@ -560,18 +567,81 @@ let alls = {
                         datas[code] = [newV];
                     }
                 });
-                // const results = Object.keys(datas)
-                //     .map((v) => {
-                //         const data = datas[v];
-                //         const res = getModel({ item: data, date, dwm });
-                //         return res[0];
-                //     })
-                //     .filter((v) => v);
+                const results = Object.keys(datas)
+                    .map((v) => {
+                        const data = datas[v];
+                        const res = this.getModel({ item: data, date, dwm });
+                        return res[0];
+                    })
+                    .filter((v) => v);
+                resultsParams.downloads = resultsParams.downloads.concat(results);
                 resultsParams.codes = resultsParams.codes.concat(datas);
                 getDatasFn(arrs, lenth);
             }
         };
-    },
-};
+    }
+    getModel({ item: datas, date, dwm }) {
+        let coords = [],
+            results = [];
+        let current = new Date(date).getTime();
 
-module.exports = alls;
+        datas.forEach((level1, index1) => {
+            let { zd, d } = level1;
+
+            let now = new Date(d).getTime();
+            if (now < current) return;
+
+            let params = {
+                dwm,
+                datas,
+                start: index1,
+                results,
+            };
+
+            switch ($methods.YingYang(level1)) {
+                case 1:
+                    this.isKlyh(params); // ok
+                    this.isQx1(params); // ok
+                    this.isQx2(params); // ok
+                    // this.isFkwz(params); // 大阴线不够大
+                    this.isCsfr(params); // ok
+                    // this.isLahm(params); // 大阴线不够大
+                    // this.isSlbw0(params); // x
+                    // name && name(params);
+                    break;
+                case 2:
+                    this.isYjsd(params); // ok
+                    this.isYydl(params); // ok
+                    this.isGsdn(params); // ok
+                    this.isDy(params);
+                    this.isFhlz(params); // ok
+                    this.isLzyy(params); // ok
+                    this.isFlzt(params); // ok
+                    // this.isG8M1(params);
+                    if (zd <= 9.5) {
+                    } else if (4 < zd && zd < 6) {
+                        this.isSlbw4(params);
+                    } else {
+                        this.isSlbw1(params);
+                        // this.isSlbw2(params); // x
+                        this.isSlbw3(params); // ok
+                    }
+                    break;
+                case 3:
+                    break;
+                default:
+                    break;
+            }
+            // this.qs(datas, [''])
+        });
+        // let results = {
+        //     coords,
+        //     data: datas,
+        //     dwm,
+        //     type
+        // }
+        return results;
+    }
+}
+
+module.exports = new AllsClass();

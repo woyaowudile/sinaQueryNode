@@ -6,69 +6,6 @@ const SQL = require("../sql");
 const $model = require("../model");
 const $methods = require("../model/methods");
 
-function getModel({ item: datas, date, dwm }) {
-    let coords = [],
-        results = [];
-    let current = new Date(date).getTime();
-
-    datas.forEach((level1, index1) => {
-        let { zd, d } = level1;
-
-        let now = new Date(d).getTime();
-        if (now < current) return;
-
-        let params = {
-            dwm,
-            datas,
-            start: index1,
-            results,
-        };
-
-        switch ($methods.YingYang(level1)) {
-            case 1:
-                $model.isKlyh(params); // ok
-                $model.isQx1(params); // ok
-                $model.isQx2(params); // ok
-                // $model.isFkwz(params); // 大阴线不够大
-                $model.isCsfr(params); // ok
-                // $model.isLahm(params); // 大阴线不够大
-                // $model.isSlbw0(params); // x
-                // name && name(params);
-                break;
-            case 2:
-                $model.isYjsd(params); // ok
-                $model.isYydl(params); // ok
-                $model.isGsdn(params); // ok
-                $model.isDy(params);
-                $model.isFhlz(params); // ok
-                $model.isLzyy(params); // ok
-                $model.isFlzt(params); // ok
-                // $model.isG8M1(params);
-                if (zd <= 9.5) {
-                } else if (4 < zd && zd < 6) {
-                    $model.isSlbw4(params);
-                } else {
-                    $model.isSlbw1(params);
-                    // $model.isSlbw2(params); // x
-                    $model.isSlbw3(params); // ok
-                }
-                break;
-            case 3:
-                break;
-            default:
-                break;
-        }
-        // $model.qs(datas, [''])
-    });
-    // let results = {
-    //     coords,
-    //     data: datas,
-    //     dwm,
-    //     type
-    // }
-    return results;
-}
-
 /**
  *
  * @param {Number} days 天数 表示从今天之前的第n天到今天
@@ -305,7 +242,7 @@ module.exports = function (app, connection) {
                     return data;
                 });
 
-                const res = getModel({ item, date, dwm });
+                const res = $model.getModel({ item, date, dwm });
                 if (!res[0]) {
                     return;
                 }

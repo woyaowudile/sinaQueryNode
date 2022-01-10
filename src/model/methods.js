@@ -191,6 +191,42 @@ class Methods {
             console.log("error", error);
         }
     }
+    downloadExcel(datas, dwm) {
+        return new Promise((rl, rj) => {
+            let lists = [],
+                newDatas = {};
+            datas.forEach((v) => {
+                const coords = v.coords;
+                coords.forEach((d) => {
+                    const [name] = d;
+                    if (newDatas[name]) {
+                        newDatas[name].push([v.code, d[1], d[2]]);
+                    } else {
+                        newDatas[name] = [[v.code, d[1], d[2]]];
+                    }
+                });
+            });
+            Object.keys(newDatas).forEach((v) => {
+                const datas = newDatas[v];
+                lists.push({
+                    name: v,
+                    data: [["模型", "起始位置", "结束位置"], ...datas],
+                });
+            });
+            try {
+                const excelName = `download_${dwm}.xlsx`;
+                const buffer = nodeExcel.build(lists);
+                fs.writeFile(excelName, buffer, (err) => {
+                    if (err) throw err;
+                    console.log("》》 -创建download-excel完成- 《《");
+                });
+                rl(excelName);
+            } catch (error) {
+                console.log("error", error);
+                rj();
+            }
+        });
+    }
     excelToDatas(dwm) {
         const sheets = nodeExcel.parse(`stash_${dwm}.xlsx`);
         return sheets;
