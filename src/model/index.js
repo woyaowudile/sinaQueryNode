@@ -536,7 +536,7 @@ class AllsClass {
             let item = stash.types[name];
             if (!item) {
                 console.log("-----预处理成功，生成Excel中");
-                // $methods.datasToExcel(resultsParams.codes, dwm);
+                $methods.datasToExcel(resultsParams.codes, dwm);
                 console.log("-----生成download-Excel中");
                 $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                 resultsParams.codes = [];
