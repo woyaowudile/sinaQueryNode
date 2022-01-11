@@ -1,8 +1,8 @@
 /** @format */
 
 const API = require("../api");
-const { quertBefore } = require("../model");
 const SQL = require("../sql");
+const $model = require("../model");
 const { sendMail } = require("../utils/sendEmail");
 
 function getContent({ codes, start, end, query }) {
@@ -181,7 +181,7 @@ module.exports = function (app, connection) {
                     fn();
                 }, 100);
             } else {
-                quertBefore({ dwm, mail: "update" }, connection);
+                $model.quertBefore({ dwm, mail: "update" }, connection);
                 // sendMail(`sina update： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/update---------------`);
             }
