@@ -463,6 +463,7 @@ class AllsClass {
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: date });
     }
     async quertBefore(query, connection) {
+        const _this = this;
         let {
             days,
             date,
@@ -571,7 +572,7 @@ class AllsClass {
                 const results = Object.keys(datas)
                     .map((v) => {
                         const data = datas[v];
-                        const res = this.getModel({ item: data, date, dwm });
+                        const res = _this.getModel({ item: data, date, dwm });
                         return res[0];
                     })
                     .filter((v) => v);
