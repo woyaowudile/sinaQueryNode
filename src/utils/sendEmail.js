@@ -29,7 +29,7 @@ module.exports = {
             if (err) {
                 console.log(err);
             } else {
-                console.log("email 发送成功");
+                console.log("email 发送成功" + new Date().toLocaleString());
             }
             transport.close();
         });

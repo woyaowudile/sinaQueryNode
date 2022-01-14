@@ -3,7 +3,6 @@
 const API = require("../api");
 const SQL = require("../sql");
 const $model = require("../model");
-const { sendMail } = require("../utils/sendEmail");
 
 function getContent({ codes, start, end, query }) {
     let period = query.dwm || "d";

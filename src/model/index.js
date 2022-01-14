@@ -6,7 +6,7 @@ const $methods = require("./methods");
 let count = 0;
 
 function exportResults({ results, datas, dwm, coords, startDay, buyDate }) {
-    console.log(`${coords[0]} --- ${++count} -${startDay.code}- ${startDay.d}`);
+    // console.log(`${coords[0]} --- ${++count} -${startDay.code}- ${startDay.d}`);
     let index = results.findIndex((v) => v.code === startDay.code);
     if (!coords.length) return;
     if (index > -1) {
