@@ -523,7 +523,6 @@ class AllsClass {
                 fn();
             }
         };
-        fn();
 
         //
         let callback = async () => {
@@ -581,6 +580,7 @@ class AllsClass {
                 getDatasFn(arrs, lenth);
             }
         };
+        fn();
     }
     getModel({ item: datas, date, dwm }) {
         let coords = [],
