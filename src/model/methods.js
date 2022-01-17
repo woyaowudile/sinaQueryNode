@@ -238,13 +238,17 @@ class Methods {
             });
             try {
                 const excelName = `download_${dwm}.xlsx`;
-                const buffer = nodeExcel.build(lists);
-                fs.writeFile(excelName, buffer, (err) => {
-                    if (err) throw err;
-                    html = getMailHtml(counts, mail, dwm);
-                    sendMail(html);
-                    console.log("》》 -创建download-excel完成- 《《");
-                });
+                if (lists.length) {
+                    const buffer = nodeExcel.build(lists);
+                    fs.writeFile(excelName, buffer, (err) => {
+                        if (err) throw err;
+                        html = getMailHtml(counts, mail, dwm);
+                        sendMail(html);
+                        console.log("》》 -创建download-excel完成- 《《");
+                    });
+                } else {
+                    console.log("》》 -未创建download-excel，没有模型- 《《");
+                }
                 rl(excelName);
             } catch (error) {
                 console.log("error", error);

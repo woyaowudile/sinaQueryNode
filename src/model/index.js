@@ -540,6 +540,7 @@ class AllsClass {
                 console.log("-----生成download-Excel中");
                 await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                 resultsParams.codes = [];
+                resultsParams.downloads = [];
             } else {
                 let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365)}'`;
                 const res = await SQL.getTables({
