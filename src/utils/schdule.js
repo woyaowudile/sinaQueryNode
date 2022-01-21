@@ -1,12 +1,13 @@
 /** @format */
 
+const API = require("../api");
+const request = require("request");
 const schdule = require("node-schedule");
 
-const request = require("request");
 const { sendMail } = require("./sendEmail");
 
 module.exports = {
-    nodeSchedule: function (connection) {
+    nodeSchedule: async (connection) => {
         console.log(`>>> 开启定时任务`);
         // let rule = new schdule.RecurrenceRule();
         /**
@@ -32,6 +33,12 @@ module.exports = {
                 second: [0],
             },
             () => {
+                const date = new Date();
+                const res = await API.getHolidays(date);
+                if (!res) {
+                    sendMail(`${date.toLocaleString()}今天好像不是工作日！`);
+                    return;
+                }
                 // 每周的一二三四五 的 下午5：30
                 connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                     if (err) {
