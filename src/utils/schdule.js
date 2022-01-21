@@ -32,10 +32,10 @@ module.exports = {
                 minute: [30],
                 second: [0],
             },
-            () => {
+            async () => {
                 const date = new Date();
                 const res = await API.getHolidays(date);
-                if (!res) {
+                if (res) {
                     sendMail(`${date.toLocaleString()}今天好像不是工作日！`);
                     return;
                 }
