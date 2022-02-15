@@ -405,9 +405,9 @@ class AllsClass {
         exportResults({ results, datas, dwm, coords, startDay: current, buyDate: current });
     }
     isYylm({ results, datas, start, dwm }) {
-        if (dwmType !== "month") return;
+        if (dwm !== "m") return;
         // 下跌要2年左右
-        let res = $methods.getModelLengthData(data, start, 24);
+        let res = $methods.getModelLengthData(datas, start, 24);
         let [d1] = res;
         if (!d1) return;
         let bMax = Math.max(d1.c, d1.o),
@@ -447,16 +447,16 @@ class AllsClass {
         });
         if (!flag) return;
         let [cy] = d1.d.split("-");
-        let ok = results.every((level1) => {
-            let [a1, a2, a3, a4] = level1;
-            if (a1 === code && a4 === "鱼跃龙门") {
-                let [year] = a2.split("-");
-                return year / 1 + 2 < cy / 1;
-            } else {
-                return true;
-            }
-        });
-        if (!ok) return;
+        // let ok = results.every((level1) => {
+        //     let [a1, a2, a3, a4] = level1;
+        //     if (a1 === code && a4 === "鱼跃龙门") {
+        //         let [year] = a2.split("-");
+        //         return year / 1 + 2 < cy / 1;
+        //     } else {
+        //         return true;
+        //     }
+        // });
+        // if (!ok) return;
         // 不好判断日期，就写当天
         let date = new Date().toLocaleDateString();
         let coords = ["isYylm", d1.d, date.d];
@@ -542,7 +542,7 @@ class AllsClass {
                 resultsParams.codes = [];
                 resultsParams.downloads = [];
             } else {
-                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365)}'`;
+                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 1))}'`;
                 const res = await SQL.getTables({
                     connection,
                     name,
@@ -601,6 +601,8 @@ class AllsClass {
                 results,
             };
 
+            this.isG8M1(params);
+            this.isYylm(params);
             switch ($methods.YingYang(level1)) {
                 case 1:
                     this.isKlyh(params); // ok
@@ -620,7 +622,6 @@ class AllsClass {
                     this.isFhlz(params); // ok
                     this.isLzyy(params); // ok
                     this.isFlzt(params); // ok
-                    // this.isG8M1(params);
                     if (zd <= 9.5) {
                     } else if (4 < zd && zd < 6) {
                         this.isSlbw4(params);

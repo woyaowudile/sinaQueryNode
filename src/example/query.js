@@ -44,7 +44,7 @@ module.exports = function (app, connection) {
             );
             return;
         }
-        /* 
+        /*
 			days：5（从5天前到今天的数据）
 			// date: ()
 			dwm: 年月日
@@ -214,13 +214,13 @@ module.exports = function (app, connection) {
     app.get("/api/query", async (req, res) => {
         console.log(`-------------开始执行 /api/query---------------`);
 
-        /* 
+        /*
 			days：5（从5天前到今天的数据）
 			// date: ()
 			dwm: 年月日
 			codes：[603,601...] 对应的603下所有的数据从数据库拿到，会很慢
 		 */
-        let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "601,603", models } = req.query;
+        let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "601,603", models = [] } = req.query;
         let d = $methods.someDay(days, "-");
 
         const sendResults = {
