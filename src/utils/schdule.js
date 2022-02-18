@@ -5,6 +5,7 @@ const request = require("request");
 const schdule = require("node-schedule");
 
 const { sendMail } = require("./sendEmail");
+const { someDay } = require("../model/methods");
 
 module.exports = {
     nodeSchedule: async (connection) => {
@@ -54,6 +55,49 @@ module.exports = {
                             },
                             (error, response, body) => {}
                         );
+                    }
+                });
+            }
+        );
+        schdule.scheduleJob(
+            {
+                dayOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                hour: [3],
+                minute: [30],
+                second: [0],
+            },
+            async () => {
+                let day = someDay(1);
+                // 每周的一二三四五 的 下午5：30
+                connection.query(`SELECT * FROM xxxx_checked WHERE buy_date = '${day}'`, async (err, result) => {
+                    if (err) {
+                    } else {
+                        if (result.length) {
+                            let datas = result.map((v) => ({
+                                name: v.name,
+                                code: v.code,
+                                buy: v.buy,
+                                buy_date: v.buy_date,
+                                dwm: v.dwm,
+                                level: v.level,
+                            }));
+                            let th = "";
+                            Object.keys(datas[0]).forEach((v) => {
+                                th += `<th>${v}</th>`;
+                            });
+                            let td = "",
+                                tr = "";
+                            datas.forEach((v) => {
+                                Object.values(v).forEach((d) => {
+                                    td += `<td>${d}</td>`;
+                                });
+                                tr += `<tr>${td}</tr>`;
+                                td = "";
+                            });
+                            let html = `<table border="1" cellpadding="10" cellspacing="10"><caption>${day}</caption><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+                            sendMail(html, "（参考）");
+                        } else {
+                        }
                     }
                 });
             }

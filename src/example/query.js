@@ -167,7 +167,7 @@ module.exports = function (app, connection) {
             const { id, code, models } = JSON.parse(body);
             let conditions = "";
             if (id) {
-                conditions += `id = ${id}`;
+                conditions += `id in (${id})`;
             }
             if (code) {
                 conditions += `code = ${code}`;
@@ -182,11 +182,11 @@ module.exports = function (app, connection) {
                 conditions,
             })
                 .then((d) => {
-                    msg = `>> checked delete ${id} ${d.message}`;
+                    msg = `>> checked delete '${id}' ${d.message}`;
                     console.log(msg);
                 })
                 .catch((err) => {
-                    msg = `>> checked delete ${id} ${err.message}`;
+                    msg = `>> checked delete '${id}' ${err.message}`;
                     console.log(msg);
                 });
             res.send(getSend({ result: getSend({ message: msg }) }));

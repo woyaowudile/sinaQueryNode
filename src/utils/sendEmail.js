@@ -17,12 +17,12 @@ let transport = emailer.createTransport(
 );
 
 module.exports = {
-    sendMail: (html = "什么内容都没有呢！~") => {
+    sendMail: (html = "什么内容都没有呢！~", subject) => {
         // 2. 设置邮件内容
         let mailOpts = {
             from: "1157850031@qq.com",
             to: "905421273@qq.com", // 多个收件人用逗号隔开
-            subject: "s_in_a query node定时任务", // 标题
+            subject: "s_in_a query node定时任务" + (subject ? subject : ""), // 标题
             html, // 内容
         };
         transport.sendMail(mailOpts, (err, res) => {
