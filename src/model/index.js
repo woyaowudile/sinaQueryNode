@@ -394,9 +394,10 @@ class AllsClass {
     }
     isG8M1({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
+        if (start < 60) return;
         // 10\60
-        let qs = $methods.JC(60, 10);
-        if (qs !== 3) return;
+        let { status, ma60 } = $methods.JC(datas, start) || {};
+        if (status !== 3) return;
         // 4. 当天的阳线要上穿慢速均线
         let current = datas[start - 1];
         if ($methods.YingYang(current) !== 2) return;

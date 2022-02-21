@@ -1,6 +1,7 @@
 /** @format */
 const fs = require("fs");
 const nodeExcel = require("node-xlsx");
+const { MA } = require("../api/methods");
 const { sendMail } = require("../utils/sendEmail");
 
 function getMailHtml(data, type, dwm) {
@@ -60,19 +61,29 @@ class Methods {
             return l <= compare;
         });
     }
-    JC(data, start, slow, fast) {
-        let bma60 = MA(this.getModelLengthData(data, start - slow, slow), slow);
-        let bma10 = MA(this.getModelLengthData(data, start - fast, fast), fast);
-        let ma60 = MA(this.getModelLengthData(data, start - 1 - slow, slow), slow);
-        let ma10 = MA(this.getModelLengthData(data, start - 1 - fast, fast), fast);
-        let ama60 = MA(this.getModelLengthData(data, start - 2 - slow, slow), slow);
-        let ama10 = MA(this.getModelLengthData(data, start - 2 - fast, fast), fast);
+    JC(data, start) {
+        let slow = 60,
+            fast = 10;
+        let bma60 = MA(data, start, slow);
+        let bma10 = MA(data, start, fast);
+        let ma60 = MA(data, start - 1, slow);
+        let ma10 = MA(data, start - 1, fast);
+        let ama60 = MA(data, start - 2, slow);
+        let ama10 = MA(data, start - 2, fast);
 
         // 金
         if (ama60 < ama10 && bma60 > bma10) {
-            return 3;
+            return {
+                ma60,
+                ma10,
+                status: 3,
+            };
         } else if (bma10 > bma60 && ama60 > ama10) {
-            return 1;
+            return {
+                ma60,
+                ma10,
+                status: 1,
+            };
         }
     }
     hp(data, start, cycle, callback) {
