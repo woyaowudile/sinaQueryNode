@@ -536,9 +536,9 @@ class AllsClass {
             let name = arrs[--lenth];
             let item = stash.types[name];
             if (!item) {
-                console.log("-----预处理成功，生成Excel中");
+                console.log(`-----预处理成功，生成Excel中(${dwm})`);
                 await $methods.datasToExcel(resultsParams.codes, dwm);
-                console.log("-----生成download-Excel中");
+                console.log(`-----生成download-Excel中(${dwm})`);
                 await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                 resultsParams.codes = [];
                 resultsParams.downloads = [];

@@ -62,7 +62,7 @@ module.exports = {
         schdule.scheduleJob(
             {
                 dayOfWeek: [1, 2, 3, 4, 5, 6, 7],
-                hour: [3],
+                hour: [5],
                 minute: [30],
                 second: [0],
             },
@@ -102,7 +102,7 @@ module.exports = {
                 });
             }
         );
-        schdule.scheduleJob("00 30 12 * * 6", () => {
+        schdule.scheduleJob("00 30 4 * * 6", () => {
             // 每周六 的4.30 更新
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'w'`, async (err, result) => {
                 if (err) {
