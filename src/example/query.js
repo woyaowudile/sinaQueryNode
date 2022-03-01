@@ -158,6 +158,35 @@ module.exports = function (app, connection) {
             res.send(getSend({ result: getSend({ message: msg, code }), code }));
         });
     });
+    app.put("/api/query/update", async (req, res) => {
+        let body = "";
+        req.on("data", (chunk) => {
+            body += chunk;
+        });
+        req.on("end", async () => {
+            const obj = JSON.parse(body);
+            const names = Object.keys(obj);
+            const values = names.map((v) => `${v} = ${obj[v]}`);
+            let msg = "",
+                code = 0;
+            await SQL.updateSQL({
+                connection,
+                name: `${SQL.base}_checked`,
+                values: `${values}`,
+                conditions: `id = ${obj.id}`,
+            })
+                .then((d) => {
+                    msg = `>> update level ${d.message}`;
+                    console.log(msg);
+                })
+                .catch((err) => {
+                    msg = `>> update level ${err.message}`;
+                    code = 1;
+                    console.log(msg);
+                });
+            res.send(getSend({ result: getSend({ message: msg, code }), code }));
+        });
+    });
     app.delete("/api/query/delete", async (req, res) => {
         let body = "";
         req.on("data", (chunk) => {
