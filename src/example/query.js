@@ -188,38 +188,32 @@ module.exports = function (app, connection) {
         });
     });
     app.delete("/api/query/delete", async (req, res) => {
-        let body = "";
-        req.on("data", (chunk) => {
-            body += chunk;
-        });
-        req.on("end", async () => {
-            const { id, code, models } = JSON.parse(body);
-            let conditions = "";
-            if (id) {
-                conditions += `id in (${id})`;
-            }
-            if (code) {
-                conditions += `code = ${code}`;
-            }
-            if (models) {
-                const arrs = models.split(",");
-                conditions += ` and name_key in ('${arrs}') `;
-            }
-            await SQL.deleteSQL({
-                connection,
-                name: `${SQL.base}_checked`,
-                conditions,
+        const { id, code, models } = req.query;
+        let conditions = "";
+        if (id) {
+            conditions += `id in (${id})`;
+        }
+        if (code) {
+            conditions += `code = ${code}`;
+        }
+        if (models) {
+            const arrs = models.split(",");
+            conditions += ` and name_key in ('${arrs}') `;
+        }
+        await SQL.deleteSQL({
+            connection,
+            name: `${SQL.base}_checked`,
+            conditions,
+        })
+            .then((d) => {
+                msg = `>> checked delete '${id}' ${d.message}`;
+                console.log(msg);
             })
-                .then((d) => {
-                    msg = `>> checked delete '${id}' ${d.message}`;
-                    console.log(msg);
-                })
-                .catch((err) => {
-                    msg = `>> checked delete '${id}' ${err.message}`;
-                    console.log(msg);
-                });
-            res.send(getSend({ result: getSend({ message: msg }) }));
-        });
+            .catch((err) => {
+                msg = `>> checked delete '${id}' ${err.message}`;
+                console.log(msg);
+            });
+        res.send(getSend({ result: getSend({ message: msg }) }));
     });
 
     app.get("/api/querybefore", async (req, res) => {
@@ -233,7 +227,7 @@ module.exports = function (app, connection) {
                 })
             );
         }
-        console.log(`-------------开始执行 /api/query---------------`);
+        console.log(`-------------开始执行 /api/querybefore---------------`);
 
         resultsParams.init = false;
         resultsParams.waiting = true;
