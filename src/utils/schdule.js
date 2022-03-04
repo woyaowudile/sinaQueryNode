@@ -44,7 +44,7 @@ module.exports = {
                 connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                     if (err) {
                     } else {
-                        sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`);
+                        sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`, "（开始）");
                         request(
                             {
                                 url: "http://localhost:3334/api/update?dwm=d",
@@ -107,7 +107,7 @@ module.exports = {
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'w'`, async (err, result) => {
                 if (err) {
                 } else {
-                    sendMail(`这周（${new Date().toLocaleString()}）的任务开始了`);
+                    sendMail(`这周（${new Date().toLocaleString()}）的任务开始了`, "（开始）");
                     request(
                         {
                             url: "http://localhost:3334/api/update?dwm=w",
@@ -126,7 +126,7 @@ module.exports = {
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'm'`, async (err, result) => {
                 if (err) {
                 } else {
-                    sendMail(`本月（${new Date().toLocaleString()}）的任务开始了`);
+                    sendMail(`本月（${new Date().toLocaleString()}）的任务开始了`, "（开始）");
                     request(
                         {
                             url: "http://localhost:3334/api/update?dwm=m",
