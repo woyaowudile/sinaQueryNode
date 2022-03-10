@@ -241,10 +241,11 @@ class Methods {
                 });
             });
             Object.keys(newDatas).forEach((v) => {
-                const datas = newDatas[v];
+                // const datas = newDatas[v];
+                const arrs = newDatas[v].sort((x, y) => new Date(y[1]).getTime() - new Date(x[1]).getTime());
                 lists.push({
                     name: v,
-                    data: [["模型", "起始位置", "结束位置"], ...datas],
+                    data: [["模型", "起始位置", "结束位置"], ...arrs],
                 });
             });
             try {
