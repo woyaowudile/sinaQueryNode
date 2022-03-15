@@ -1,8 +1,7 @@
 /** @format */
 
 const request = require("request");
-
-const $Methods = require("./methods");
+const { MA } = require("./methods");
 
 const { sohu, sina, ig502, holidays } = require("./url");
 
@@ -106,9 +105,9 @@ function callback(url, params) {
                                             data: hq.map((level1, index1) => {
                                                 let [d, o, c, zde, zd, l, h, v, e, hs] = level1;
                                                 let zf = (((h - l) / preClose / 1) * 100).toFixed(2);
-                                                let ma10 = $Methods.MA(hq, index1, 10);
-                                                let ma20 = $Methods.MA(hq, index1, 20);
-                                                let ma60 = $Methods.MA(hq, index1, 60);
+                                                let ma10 = MA(hq, index1, 10);
+                                                let ma20 = MA(hq, index1, 20);
+                                                let ma60 = MA(hq, index1, 60);
                                                 preClose = c;
                                                 return {
                                                     code: codeName,

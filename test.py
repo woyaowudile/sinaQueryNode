@@ -1,0 +1,13 @@
+arrs = range(1,4)
+
+def count():
+    fs = []
+    for i in arrs:
+        def f():
+            return i * i
+        fs.append(f())
+    return fs
+
+f1, f2, f3 = count()
+
+print(f1, f2, f3)

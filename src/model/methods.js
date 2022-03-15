@@ -231,7 +231,32 @@ class Methods {
                 const coords = v.coords;
                 coords.forEach((d) => {
                     const [name] = d;
-                    const flag = this.compareTime(this.someDay(7), d[1]);
+                    // 每个模型对应的 比较时间不同
+                    const days = {
+                        isKlyh: 7,
+                        isYjsd: 7,
+                        isQx1: 8,
+                        isQx2: 8,
+                        isFkwz: 7,
+                        isYydl: 11,
+                        isCsfr: 7,
+                        isGsdn: 7,
+                        isDy: 8,
+                        isFhlz: 7,
+                        isLzyy: 7,
+                        isCBZ: 8,
+                        isFlzt: 7,
+                        isLahm: 7,
+                        isSlbw0: 7,
+                        isSlbw1: 52,
+                        // isSlbw2: "xxx",
+                        isSlbw3: 7,
+                        isSlbw4: 13,
+                        isSlqs: 7,
+                        isG8M1: 7,
+                        isYylm: 25,
+                    }[name];
+                    const flag = this.compareTime(this.someDay(days), d[1]);
                     flag && (counts[name] = (counts[name] || 0) + 1);
                     if (newDatas[name]) {
                         newDatas[name].push([v.code, d[1], d[2]]);

@@ -1,5 +1,6 @@
 /** @format */
 
+const { MA } = require("../api/methods");
 const SQL = require("../sql");
 const $methods = require("./methods");
 
@@ -316,9 +317,6 @@ class AllsClass {
 
         let current = data[start];
 
-        if (current.d === "2015-09-28") {
-            debugger;
-        }
         let num = 1,
             max = 0,
             buy;
@@ -543,7 +541,9 @@ class AllsClass {
                 resultsParams.codes = [];
                 resultsParams.downloads = [];
             } else {
-                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 1))}'`;
+                // 延伸60天，用作60均线的计算
+                const stretch = 60;
+                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 1) + stretch)}'`;
                 const res = await SQL.getTables({
                     connection,
                     name,
@@ -551,6 +551,11 @@ class AllsClass {
                 });
                 let datas = {};
                 res.forEach((v, i) => {
+                    if (i < stretch) return;
+
+                    let ma10 = MA(res, i, 10);
+                    let ma20 = MA(res, i, 20);
+                    let ma60 = MA(res, i, 60);
                     const { code } = v;
                     // 将需要转成数字的取出来
                     const newV = {
@@ -563,6 +568,9 @@ class AllsClass {
                         h: v.h / 1,
                         l: v.l / 1,
                         v: v.v / 1,
+                        ma10,
+                        ma20,
+                        ma60,
                     };
                     if (datas[code]) {
                         datas[code].push(newV);
