@@ -90,7 +90,7 @@ module.exports = function (app, connection) {
         let used = usedres.concat(failres).map((v) => v.code);
 
         let unused = arrs.filter((v) => !used.includes(v.code));
-
+        unused = unused.sort((x, y) => x.code - y.code);
         let count = 0,
             num = 1;
         let fn = async function () {
