@@ -8,7 +8,7 @@ const $methods = require("../model/methods");
 function getContent({ codes, query }) {
     let period = query.dwm || "d";
     let days = query.days / 1 || 0;
-    let start = query.start || 19920601;
+    let start = query.start;
     let end = query.end;
 
     if (!start) {
