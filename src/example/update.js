@@ -6,7 +6,7 @@ const { sendMail } = require("../utils/sendEmail");
 const { someDay } = require("../model/methods");
 const { quertBefore } = require("../model");
 
-function getContent({ codes, start, end, query }) {
+function getContent({ codes, query }) {
     let period = query.dwm || "d";
     let days = query.days / 1 || 0;
     let start = query.start || 19920601;
