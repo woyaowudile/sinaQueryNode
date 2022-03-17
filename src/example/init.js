@@ -2,7 +2,8 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const $model = require("../model");
+const { someDay } = require("../model/methods");
+const { quertBefore } = require("../model");
 
 function getContent({ codes, start, end, query }) {
     let period = query.dwm || "d";
@@ -48,16 +49,6 @@ function getContent({ codes, start, end, query }) {
                 rj();
             });
     });
-}
-
-function someDay(days, symbol = "-") {
-    let today = new Date();
-    let interval = 24 * 60 * 60 * 1000 * days;
-    let after = new Date(today - interval);
-    let year = after.getFullYear();
-    let month = after.getMonth() + 1 + "";
-    let date = after.getDate() + "";
-    return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
 }
 
 /**
@@ -147,7 +138,7 @@ module.exports = function (app, connection) {
                     fn();
                 }, 200);
             } else {
-                $model.quertBefore({ dwm, mail: "init" }, connection);
+                quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }

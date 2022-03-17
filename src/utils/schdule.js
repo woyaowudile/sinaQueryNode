@@ -68,7 +68,7 @@ module.exports = {
             },
             async () => {
                 let day = someDay(1);
-                // 每周的一二三四五 的 下午5：30
+                // 每周的一二三四五 的 上午5：30
                 connection.query(`SELECT * FROM xxxx_checked WHERE buy_date = '${day}'`, async (err, result) => {
                     if (err) {
                     } else {

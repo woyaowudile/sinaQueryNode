@@ -69,7 +69,8 @@ function callback(url, params) {
                 },
             },
             (error, response, body) => {
-                let conditions = ["body is null", "non-existent", "An error occurred.", "connect ETIMEDOUT 162.14.132.226:443"];
+                // 其他是错误信息，‘{}\n’表示没值
+                let conditions = ["body is null", "non-existent", "An error occurred.", "connect ETIMEDOUT 162.14.132.226:443", "{}\n"];
                 let index = -1;
                 if (body) {
                     index = conditions.findIndex((v) => body.indexOf(v) > -1);
