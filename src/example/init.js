@@ -3,7 +3,7 @@
 const API = require("../api");
 const SQL = require("../sql");
 const { someDay } = require("../model/methods");
-const { quertBefore } = require("../model");
+const $model = require("../model");
 
 function getContent({ codes, query }) {
     let period = query.dwm || "d";
@@ -139,7 +139,7 @@ module.exports = function (app, connection) {
                     fn();
                 }, 200);
             } else {
-                quertBefore({ dwm, mail: "init" }, connection);
+                $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }

@@ -2,9 +2,8 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const { sendMail } = require("../utils/sendEmail");
-const { someDay } = require("../model/methods");
-const { quertBefore } = require("../model");
+const $model = require("../model");
+const $methods = require("../model/methods");
 
 function getContent({ codes, query }) {
     let period = query.dwm || "d";
@@ -13,10 +12,10 @@ function getContent({ codes, query }) {
     let end = query.end;
 
     if (!start) {
-        start = someDay(days, "");
+        start = $methods.someDay(days, "");
     }
     if (!end) {
-        end = someDay(days, "");
+        end = $methods.someDay(days, "");
     }
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -132,7 +131,7 @@ module.exports = function (app, connection) {
                     fn(stashFailItem, 1);
                     stashFailItem = [];
                 } else {
-                    quertBefore({ dwm, mail: "update" }, connection);
+                    $model.quertBefore({ dwm, mail: "update" }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
                     console.log(`-------------执行完成 /api/update---------------`);
                 }

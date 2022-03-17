@@ -2,8 +2,8 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const { quertBefore, getModel } = require("../model");
-const { someDay, excelToDatas } = require("../model/methods");
+const $model = require("../model");
+const $methods = require("../model/methods");
 
 /**
  *
@@ -50,7 +50,7 @@ module.exports = function (app, connection) {
 			codes：[603,601...] 对应的603下所有的数据从数据库拿到，会很慢
 		 */
         let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "601,603", models } = req.query;
-        let d = someDay(days, "-");
+        let d = $methods.someDay(days, "-");
 
         const sendResults = {
             code: 0,
@@ -231,7 +231,7 @@ module.exports = function (app, connection) {
         resultsParams.init = false;
         resultsParams.waiting = true;
 
-        quertBefore(req.query, connection);
+        $model.quertBefore(req.query, connection);
     });
     app.get("/api/query", async (req, res) => {
         console.log(`-------------开始执行 /api/query---------------`);
@@ -243,7 +243,7 @@ module.exports = function (app, connection) {
 			codes：[603,601...] 对应的603下所有的数据从数据库拿到，会很慢
 		 */
         let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "601,603", models = [] } = req.query;
-        let d = someDay(days, "-");
+        let d = $methods.someDay(days, "-");
 
         const sendResults = {
             code: 0,
@@ -252,7 +252,7 @@ module.exports = function (app, connection) {
             data: [],
         };
         if (!resultsParams.codes.length) {
-            resultsParams.codes = excelToDatas(dwm);
+            resultsParams.codes = $methods.excelToDatas(dwm);
         }
         let datas = resultsParams.codes
             .map((v) => {
@@ -264,7 +264,7 @@ module.exports = function (app, connection) {
                     return data;
                 });
 
-                const res = getModel({ item, date, dwm });
+                const res = $model.getModel({ item, date, dwm });
                 if (!res[0]) {
                     return;
                 }
