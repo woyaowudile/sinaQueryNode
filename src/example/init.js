@@ -5,7 +5,7 @@ const SQL = require("../sql");
 const { someDay } = require("../model/methods");
 const { quertBefore } = require("../model");
 
-function getContent({ codes, start, end, query }) {
+function getContent({ codes, query }) {
     let period = query.dwm || "d";
     /**
      * 例如国庆节，这时候end应该是放假前的一天，
@@ -14,9 +14,10 @@ function getContent({ codes, start, end, query }) {
      * 具体，参考 api/index/的get()
      */
     let days = query.days / 1 || 0;
-
+    let start = query.start || 19920601;
+    let end = query.end;
     if (!start) {
-        start = 19920601 || someDay(days, "");
+        start = someDay(days, "");
     }
     if (!end) {
         end = someDay(days, "");
