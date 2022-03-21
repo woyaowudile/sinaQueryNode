@@ -2,7 +2,7 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const { someDay } = require("../model/methods");
+const $methods = require("../model/methods");
 const $model = require("../model");
 
 function getContent({ codes, query }) {
@@ -17,13 +17,13 @@ function getContent({ codes, query }) {
     let start = query.start || 19920601;
     let end = query.end;
     if (!start) {
-        start = someDay(days, "");
+        start = $methods.someDay(days, "");
     }
     if (!end) {
-        end = someDay(days, "");
+        end = $methods.someDay(days, "");
     }
     let others = {
-        days: someDay(days, "-"),
+        days: $methods.someDay(days, "-"),
     };
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -142,6 +142,7 @@ module.exports = function (app, connection) {
                 $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
+                await $methods.duplicateRemove();
             }
         };
         fn();

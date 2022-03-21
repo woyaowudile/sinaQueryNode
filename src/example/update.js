@@ -134,6 +134,7 @@ module.exports = function (app, connection) {
                     $model.quertBefore({ dwm, mail: "update" }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
                     console.log(`-------------执行完成 /api/update---------------`);
+                    await $methods.duplicateRemove();
                 }
             }
         };

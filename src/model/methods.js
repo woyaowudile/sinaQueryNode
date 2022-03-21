@@ -1,5 +1,6 @@
 /** @format */
 const fs = require("fs");
+const request = require("http");
 const nodeExcel = require("node-xlsx");
 const { MA } = require("../api/methods");
 const { sendMail } = require("../utils/sendEmail");
@@ -190,35 +191,52 @@ class Methods {
         let btime = new Date(dataB).getTime();
         return btime > atime;
     }
+    write({ keys, lists, dwm }) {
+        return new Promise((rl, rj) => {
+            try {
+                const type = keys[0].slice(0, 3);
+                const buffer = nodeExcel.build(lists);
+                fs.writeFile(`stash_${type}_${dwm}.xlsx`, buffer, (err) => {
+                    if (err) throw err;
+                    console.log(`》》 -创建${type}excel完成- 《《`);
+                    rl();
+                });
+            } catch (error) {
+                console.log("error", error);
+            }
+        });
+    }
     datasToExcel(codes, dwm) {
+        const _this = this;
         return new Promise((rl, rj) => {
             if (!codes.length) {
                 console.log("没有要存入excel的数据");
                 return;
             }
-            let lists = [];
-            codes.forEach((v) => {
-                let keys = Object.keys(v);
-                let values = Object.values(v);
-                keys.map((d) => {
-                    let datas = v[d];
-                    lists.push({
-                        name: d,
-                        data: [Object.keys(datas[0]), ...datas.map((d) => Object.values(d))],
+            let lists = [],
+                i = 0;
+            let fn = function () {
+                let arrs = codes[i];
+                if (arrs) {
+                    let keys = Object.keys(arrs);
+                    let values = Object.values(arrs);
+                    keys.forEach((d) => {
+                        let datas = arrs[d];
+                        lists.push({
+                            name: d,
+                            data: [Object.keys(datas[0]), ...datas.map((d) => Object.values(d))],
+                        });
                     });
-                });
-            });
-            try {
-                const buffer = nodeExcel.build(lists);
-                fs.writeFile(`stash_${dwm}.xlsx`, buffer, (err) => {
-                    if (err) throw err;
-                    console.log("》》 -创建excel完成- 《《");
+                    _this.write({ dwm, lists, keys }).then(() => {
+                        lists = [];
+                        ++i;
+                        fn();
+                    });
+                } else {
                     rl();
-                });
-            } catch (error) {
-                console.log("error", error);
-                rl();
-            }
+                }
+            };
+            fn();
         });
     }
     downloadExcel(datas, dwm, mail) {
@@ -293,9 +311,40 @@ class Methods {
             }
         });
     }
-    excelToDatas(dwm) {
-        const sheets = nodeExcel.parse(`stash_${dwm}.xlsx`);
-        return sheets;
+    excelToDatas(dwm, codes) {
+        return new Promise((rl, rj) => {
+            let i = 0,
+                sheets = [];
+            let fn = function () {
+                const type = codes.split(",")[i];
+                if (type) {
+                    let arrs = nodeExcel.parse(`stash_${type}_${dwm}.xlsx`) || [];
+                    sheets = sheets.concat(arrs);
+                    console.log(`》》 -读取 stash_${type}_${dwm}.xlsx 成功- 《《`);
+                    i++;
+                    fn();
+                } else {
+                    rl(sheets);
+                }
+            };
+            fn();
+        });
+    }
+    duplicateRemove() {
+        return new Promise((rl, rj) => {
+            request(
+                {
+                    url: "http://localhost:3334/api/duplicate/remove",
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "text/json",
+                    },
+                },
+                (error, response, body) => {
+                    rl();
+                }
+            );
+        });
     }
 }
 

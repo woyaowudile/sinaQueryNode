@@ -54,14 +54,15 @@ function hasTablesSql({ connection, name }) {
  *
  * @param {Objec} connection 数据库对象
  * @param {string} name 表名
+ * @param {string} select 也可以当做自定义的条件语句使用
  * @param {string} distinct 去重查询，这里用来查 list中有多少类别：000,002,600,...
  * @param {string} conditions 条件，接在where 后面
  * @returns promise的成功/失败
  */
-function querySQL({ connection, name, distinct, conditions, callback }) {
+function querySQL({ connection, name, select = "*", distinct, conditions, callback }) {
     // distinct = 'DISTINCT(type)'
     return new Promise((rl, rj) => {
-        let sql = `SELECT * FROM ${name}`;
+        let sql = `SELECT ${select} FROM ${name}`;
         if (conditions) {
             sql += ` where ${conditions}`;
         }

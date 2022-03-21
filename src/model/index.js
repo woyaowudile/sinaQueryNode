@@ -461,136 +461,141 @@ class AllsClass {
         let coords = ["isYylm", d1.d, date.d];
         exportResults({ results, datas, dwm, coords, startDay: d1, buyDate: date });
     }
-    async quertBefore(query, connection) {
-        const _this = this;
-        let {
-            days,
-            date,
-            dwm = "d",
-            size = 25,
-            // page = 1,
-            index = 0,
-            count = -1,
-            // codes = "603",
-            codes = "600,601,603,000,002",
-            models,
-            mail = "query-before",
-        } = query;
-        let resultsParams = {
-            init: true,
-            codes: [],
-            downloads: [],
-            waiting: false,
-            status: "",
-        };
-        let stash = {
-            useds: [],
-            types: {},
-        };
-        // let d = $methods.someDay(days, "-");
+    quertBefore(query, connection, { isWirteExcel = false } = {}) {
+        return new Promise(async (rl, rj) => {
+            const _this = this;
+            let {
+                days,
+                date,
+                dwm = "d",
+                size = 25,
+                // page = 1,
+                index = 0,
+                count = -1,
+                // codes = "603",
+                codes = "600,601,603,000,002",
+                models,
+                mail = "query-before",
+            } = query;
+            let resultsParams = {
+                init: true,
+                codes: [],
+                downloads: [],
+                waiting: false,
+                status: "",
+            };
+            let stash = {
+                useds: [],
+                types: {},
+            };
+            // let d = $methods.someDay(days, "-");
 
-        // 1. 获取到所有的类型
-        let usedres = await SQL.getTables({
-            connection,
-            name: "used",
-            conditions: `dwm='${dwm}'`,
-        });
+            // 1. 获取到所有的类型
+            let usedres = await SQL.getTables({
+                connection,
+                name: "used",
+                conditions: `dwm='${dwm}'`,
+            });
 
-        let usedTypes = [...new Set(usedres.map((v) => v.type))];
-        // 2. 过滤出条件下的类型，例如：601、603...
-        usedTypes = usedTypes.filter((v) => codes.indexOf(v) > -1);
+            let usedTypes = [...new Set(usedres.map((v) => v.type))];
+            // 2. 过滤出条件下的类型，例如：601、603...
+            usedTypes = usedTypes.filter((v) => codes.indexOf(v) > -1);
 
-        // usedTypes = usedTypes.filter(v => !resultsParams.codes.some(d => d[v]))
+            // usedTypes = usedTypes.filter(v => !resultsParams.codes.some(d => d[v]))
 
-        let total = usedTypes.length;
+            let total = usedTypes.length;
 
-        let fn = async () => {
-            let item = usedTypes[++count];
-            if (!item) {
-                // end
-                callback();
-            } else {
-                if (!stash.types[item]) {
-                    let distinct = "distinct(code)";
-                    const distinctCodes = await SQL.querySQL({
-                        connection,
-                        name: `${SQL.base}_${item}`,
-                        distinct,
-                    });
-                    stash.types[item] = distinctCodes.data.map((v) => v.code).sort();
-                }
-                fn();
-            }
-        };
-
-        //
-        let callback = async () => {
-            let arrs = Object.keys(stash.types);
-            let lenth = arrs.length;
-            getDatasFn(arrs, lenth);
-        };
-
-        let getDatasFn = async (arrs, lenth) => {
-            let name = arrs[--lenth];
-            let item = stash.types[name];
-            if (!item) {
-                console.log(`-----预处理成功，生成Excel中(${dwm})`);
-                await $methods.datasToExcel(resultsParams.codes, dwm);
-                console.log(`-----生成download-Excel中(${dwm})`);
-                await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
-                resultsParams.codes = [];
-                resultsParams.downloads = [];
-            } else {
-                // 延伸60天，用作60均线的计算
-                const stretch = 60;
-                let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 1) + stretch)}'`;
-                const res = await SQL.getTables({
-                    connection,
-                    name,
-                    conditions,
-                });
-                let datas = {};
-                res.forEach((v, i) => {
-                    if (i < stretch) return;
-
-                    let ma10 = MA(res, i, 10);
-                    let ma20 = MA(res, i, 20);
-                    let ma60 = MA(res, i, 60);
-                    const { code } = v;
-                    // 将需要转成数字的取出来
-                    const newV = {
-                        d: v.d,
-                        code: v.code,
-                        zd: v.zd,
-                        // ...v,
-                        c: v.c / 1,
-                        o: v.o / 1,
-                        h: v.h / 1,
-                        l: v.l / 1,
-                        v: v.v / 1,
-                        ma10,
-                        ma20,
-                        ma60,
-                    };
-                    if (datas[code]) {
-                        datas[code].push(newV);
-                    } else {
-                        datas[code] = [newV];
+            let fn = async () => {
+                let item = usedTypes[++count];
+                if (!item) {
+                    // end
+                    callback();
+                } else {
+                    if (!stash.types[item]) {
+                        let distinct = "distinct(code)";
+                        const distinctCodes = await SQL.querySQL({
+                            connection,
+                            name: `${SQL.base}_${item}`,
+                            distinct,
+                        });
+                        stash.types[item] = distinctCodes.data.map((v) => v.code).sort();
                     }
-                });
-                const results = Object.keys(datas)
-                    .map((v) => {
-                        const data = datas[v];
-                        const res = _this.getModel({ item: data, date, dwm });
-                        return res[0];
-                    })
-                    .filter((v) => v);
-                resultsParams.downloads = resultsParams.downloads.concat(results);
-                resultsParams.codes = resultsParams.codes.concat(datas);
+                    fn();
+                }
+            };
+
+            //
+            let callback = async () => {
+                let arrs = Object.keys(stash.types);
+                let lenth = arrs.length;
                 getDatasFn(arrs, lenth);
-            }
-        };
-        fn();
+            };
+
+            let getDatasFn = async (arrs, lenth) => {
+                let name = arrs[--lenth];
+                let item = stash.types[name];
+                if (!item) {
+                    if (1 || isWirteExcel) {
+                        console.log(`-----预处理成功，生成Excel中(${dwm})`);
+                        await $methods.datasToExcel(resultsParams.codes, dwm);
+                        console.log(`-----生成download-Excel中(${dwm})`);
+                        await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
+                    }
+                    rl(resultsParams.codes);
+                    resultsParams.codes = [];
+                    resultsParams.downloads = [];
+                } else {
+                    // 延伸60天，用作60均线的计算
+                    const stretch = 60;
+                    let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 1) + stretch)}'`;
+                    const res = await SQL.getTables({
+                        connection,
+                        name,
+                        conditions,
+                    });
+                    let datas = {};
+                    res.forEach((v, i) => {
+                        if (i < stretch) return;
+
+                        let ma10 = MA(res, i, 10);
+                        let ma20 = MA(res, i, 20);
+                        let ma60 = MA(res, i, 60);
+                        const { code } = v;
+                        // 将需要转成数字的取出来
+                        const newV = {
+                            d: v.d,
+                            code: v.code,
+                            zd: v.zd,
+                            // ...v,
+                            c: v.c / 1,
+                            o: v.o / 1,
+                            h: v.h / 1,
+                            l: v.l / 1,
+                            v: v.v / 1,
+                            ma10,
+                            ma20,
+                            ma60,
+                        };
+                        if (datas[code]) {
+                            datas[code].push(newV);
+                        } else {
+                            datas[code] = [newV];
+                        }
+                    });
+                    const results = Object.keys(datas)
+                        .map((v) => {
+                            const data = datas[v];
+                            const res = _this.getModel({ item: data, date, dwm });
+                            return res[0];
+                        })
+                        .filter((v) => v);
+                    resultsParams.downloads = resultsParams.downloads.concat(results);
+                    resultsParams.codes = resultsParams.codes.concat(datas);
+                    getDatasFn(arrs, lenth);
+                }
+            };
+            fn();
+        });
     }
     getModel({ item: datas, date, dwm }) {
         let coords = [],

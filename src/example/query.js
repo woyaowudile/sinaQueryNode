@@ -242,7 +242,7 @@ module.exports = function (app, connection) {
 			dwm: 年月日
 			codes：[603,601...] 对应的603下所有的数据从数据库拿到，会很慢
 		 */
-        let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "601,603", models = [] } = req.query;
+        let { days, date, dwm = "d", size = 25, page = 1, index = 0, count = -1, codes = "600,601,603,000,002", models = [] } = req.query;
         let d = $methods.someDay(days, "-");
 
         const sendResults = {
@@ -252,7 +252,8 @@ module.exports = function (app, connection) {
             data: [],
         };
         if (!resultsParams.codes.length) {
-            resultsParams.codes = $methods.excelToDatas(dwm);
+            resultsParams.codes = await $methods.excelToDatas(dwm, codes);
+            // resultsParams.codes = await $model.quertBefore(req.query, connection);
         }
         let datas = resultsParams.codes
             .map((v) => {
@@ -293,6 +294,7 @@ module.exports = function (app, connection) {
                 sendResults.message = message;
                 sendResults.index = count;
                 sendResults.code = flag ? 0 : 1;
+                console.log(`-------------《query：${message}》-------------`);
                 res.send(getSend({ result: sendResults }));
             } else {
                 let { buy, code, datas, coords } = item;
