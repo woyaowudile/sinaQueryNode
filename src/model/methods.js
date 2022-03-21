@@ -1,6 +1,6 @@
 /** @format */
 const fs = require("fs");
-const request = require("http");
+const { request } = require("http");
 const nodeExcel = require("node-xlsx");
 const { MA } = require("../api/methods");
 const { sendMail } = require("../utils/sendEmail");
