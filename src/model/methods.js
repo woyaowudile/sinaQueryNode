@@ -341,7 +341,7 @@ class Methods {
                     },
                 },
                 (error, response, body) => {
-                    rl();
+                    rl(body);
                 }
             );
         });

@@ -37,6 +37,7 @@ module.exports = function (app, connection) {
                 fn();
             } else {
                 console.log(`-------------《去重已完成》-------------`);
+                res.send("duplicate remove - ok");
             }
         };
         fn();
