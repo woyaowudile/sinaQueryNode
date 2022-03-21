@@ -132,7 +132,7 @@ module.exports = function (app, connection) {
                     stashFailItem = [];
                 } else {
                     await $methods.duplicateRemove();
-                    $model.quertBefore({ dwm, mail: "update" }, connection);
+                    await $model.quertBefore({ dwm, mail: "update" }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
                     console.log(`-------------执行完成 /api/update---------------`);
                 }

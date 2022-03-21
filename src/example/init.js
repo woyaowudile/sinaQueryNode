@@ -140,7 +140,7 @@ module.exports = function (app, connection) {
                 }, 200);
             } else {
                 await $methods.duplicateRemove();
-                $model.quertBefore({ dwm, mail: "init" }, connection);
+                await $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }

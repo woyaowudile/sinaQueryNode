@@ -176,8 +176,7 @@ class Methods {
         // let
     }
 
-    someDay(days, symbol = "-") {
-        if (!days) return;
+    someDay(days = 0, symbol = "-") {
         let today = new Date();
         let interval = 24 * 60 * 60 * 1000 * days;
         let after = new Date(today - interval);
