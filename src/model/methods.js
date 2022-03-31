@@ -5,15 +5,6 @@ const nodeExcel = require("node-xlsx");
 const { MA } = require("../api/methods");
 const { sendMail } = require("../utils/sendEmail");
 
-function getMailHtml(data, type, dwm) {
-    let divbox = ``;
-    for (let k in data) {
-        divbox += `<div style="display:flex"><span style="flex: 1">${k}：</span><span style="flex: 1">${data[k]}</span></div>`;
-    }
-    let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
-    return html;
-}
-
 class Methods {
     constructor() {}
     YingYang(data) {
@@ -87,50 +78,53 @@ class Methods {
             };
         }
     }
-    hp(data, start, cycle, callback) {
-        let scale = 1.045;
-        let datas = this.getModelLengthData(data, start - cycle, cycle);
-        let [d1] = datas;
-        if (!d1) return;
-        let index = 0,
-            startIndex = 0,
-            arr = [];
-        while (startIndex + index + 5 < datas.length) {
-            startIndex += index;
-            let avrage = Math.abs(datas[startIndex].c - datas[startIndex].o) / 2;
-            let base = Math.min(datas[startIndex].c, datas[startIndex].o) + avrage;
-            let pre = {
-                date: datas[startIndex].d,
-                max: base * scale,
-                min: base / scale,
-            };
-            datas.slice(startIndex, datas.length - 1).forEach((level1, index1) => {
-                let { c, o, h, l, d } = level1;
-                if (h > pre.min && l < pre.max) {
-                    index = index1;
-                }
-            });
-            let max = datas.slice(startIndex, startIndex + index + 1).map((level1) => Math.max(level1.c, level1.o));
-            let min = datas.slice(startIndex, startIndex + index + 1).map((level1) => Math.min(level1.c, level1.o));
-            let date = datas.slice(startIndex, startIndex + index + 1).map((level1) => level1.d);
-            arr.push({ max, min, date, count: index++ });
-        }
-        let flag = false;
-        let [last2] = arr.slice(arr.length - 2, -1);
-        let [last] = arr.slice(-1);
-        if (arr.length <= 1) {
-            flag = true;
-        } else {
-            if (last.count > 22) {
-                let max2 = [...last2.max];
-                let max = [...last.max];
-                flag = max2 >= max;
+    reserveFn(datas, start, num) {
+        const arrs = datas.slice(start - num, start) || [];
+        return arrs.reverse();
+    }
+    hp({ datas, start, current }) {
+        const max = current.c;
+        // let newCurrent = current
+        // let precent = current.zd > 9.5
+        // if (!precent) {
+        //     let exMin = Math.min(newCurrent.c, newCurrent.o)
+        //     let exMax = Math.max(newCurrent.c, newCurrent.o)
+
+        // }
+        let number = 0;
+        const lists70 = this.reserveFn(datas, start, 90);
+        const index = lists70.findIndex((v, i) => {
+            if (i < 22) {
+                // 22根k线有多少根是在当前k线的上下浮动的。比如，000540的2021-08-02
+                let min1 = Math.min(v.c, v.o);
+                min1 < current.c && number++;
+                return;
             }
-        }
-        if (callback) {
-            flag = callback(arr, datas);
-        }
-        return flag;
+            if (max < v.l) {
+                // 10天以上都在该模型的max值的上面，用以确定是下跌后的横盘
+                const lists10 = lists70.slice(i, i + 10);
+                return lists10.every((d) => max < d.l);
+            }
+        });
+
+        if (!(index > -1 && number > 15)) return;
+        const list = lists70.slice(0, index);
+        return {
+            data: lists70[index],
+            index: start - index,
+            // 横盘的最低价
+            min: Math.min(...list.map((v) => v.l)),
+            max: Math.max(...list.map((v) => v.h)),
+        };
+    }
+    xd({ datas, start }) {
+        const current = datas[start];
+        const lists = this.reserveFn(datas, start, 30);
+        const index = lists.every((v, i) => {
+            let min = Math.min(v.o, v.c);
+            return current.l < min;
+        });
+        return index;
     }
     xiong(data) {
         let arr = [];
@@ -170,10 +164,6 @@ class Methods {
         let d = dd.getDate() + "";
 
         return y.padStart(4, 0) + "-" + m.padStart(2, 0) + "-" + d.padStart(2, 0);
-    }
-
-    qs(datas, []) {
-        // let
     }
 
     someDay(days = 0, symbol = "-") {
@@ -276,9 +266,9 @@ class Methods {
                     const flag = this.compareTime(this.someDay(days), d[1]);
                     flag && (counts[name] = (counts[name] || 0) + 1);
                     if (newDatas[name]) {
-                        newDatas[name].push([v.code, d[1], d[2]]);
+                        newDatas[name].push([v.code, d[1], d[2], d[3]]);
                     } else {
-                        newDatas[name] = [[v.code, d[1], d[2]]];
+                        newDatas[name] = [[v.code, d[1], d[2], d[3]]];
                     }
                 });
             });
@@ -287,7 +277,7 @@ class Methods {
                 const arrs = newDatas[v].sort((x, y) => new Date(y[1]).getTime() - new Date(x[1]).getTime());
                 lists.push({
                     name: v,
-                    data: [["模型", "起始位置", "结束位置"], ...arrs],
+                    data: [["模型", "起始位置", "结束位置", "结果"], ...arrs],
                 });
             });
             try {
@@ -296,7 +286,7 @@ class Methods {
                     const buffer = nodeExcel.build(lists);
                     fs.writeFile(excelName, buffer, (err) => {
                         if (err) throw err;
-                        html = getMailHtml(counts, mail, dwm);
+                        html = this.getMailHtml(counts, mail, dwm);
                         sendMail(html);
                         console.log("》》 -创建download-excel完成- 《《");
                     });
@@ -344,6 +334,14 @@ class Methods {
                 }
             );
         });
+    }
+    getMailHtml(data, type, dwm) {
+        let divbox = ``;
+        for (let k in data) {
+            divbox += `<div style="display:flex"><span style="flex: 1">${k}：</span><span style="flex: 1">${data[k]}</span></div>`;
+        }
+        let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
+        return html;
     }
 }
 
