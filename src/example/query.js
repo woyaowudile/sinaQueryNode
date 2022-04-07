@@ -13,7 +13,7 @@ const $methods = require("../model/methods");
  * @param {Number} size 每页数量
  * @param {Number} page 第几页
  */
-let resultsAllCodes = {};
+let resultsDownload = [];
 let resultsParams = {
     init: true,
     codes: [],
@@ -303,5 +303,22 @@ module.exports = function (app, connection) {
             }
         };
         fn();
+    });
+    app.get("/api/analysis", async (req, res) => {
+        console.log(`-------------开始执行 /api/analysis---------------`);
+        let { days, date, dwm = "d", codes = "600,601,603,000,002", models = [] } = req.query;
+
+        if (!resultsDownload.length) {
+            console.log("》》》 正在查询download");
+            resultsDownload = await $methods.readDownloadExcel(dwm);
+        }
+        console.log("》》 -- 查询成功 -- 《《");
+        const sendResults = {
+            code: 0,
+            index: 0,
+            message: "成功",
+            data: resultsDownload,
+        };
+        res.send(getSend({ result: sendResults }));
     });
 };

@@ -319,6 +319,12 @@ class Methods {
             fn();
         });
     }
+    readDownloadExcel(dwm = "d") {
+        return new Promise((rl, rj) => {
+            const sheets = nodeExcel.parse(`download_${dwm}.xlsx`) || [];
+            rl(sheets);
+        });
+    }
     duplicateRemove() {
         return new Promise((rl, rj) => {
             request(

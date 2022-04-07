@@ -15,18 +15,19 @@ function exportResults({ results, models, datas, dwm, coords, startDay, buyDate 
     //     debugger;
     // }
     let resIndex = datas.findIndex((v) => v.d === buyDate.d);
-    let res10 = datas.slice(resIndex, resIndex + 10);
+    let res10 = datas.slice(resIndex + 1, resIndex + 10);
     let modelsIndex = models.findIndex((v) => v.d === buyDate.d);
     let min = Math.min(...models.slice(0, modelsIndex).map((v) => Math.min(v.c, v.o)));
-    let isFail = res10.some((v) => Math.min(v.c, v.o) < min) && "失败";
-    if (isFail) {
-        coords.push(isFail);
-    } else {
-        const list = res10.map((v, i) => {
-            return (((v.c - buyDate.o) / v.c) * 100).toFixed(2) + "%";
-        });
-        coords.push(`${list}`);
-    }
+    // let isFail = res10.some((v) => Math.min(v.c, v.o) < min) && "失败";
+    // if (isFail) {
+    //     coords.push(isFail);
+    // } else {
+    const list = res10.map((v, i) => {
+        const num = $methods.zdf([buyDate, v]);
+        return Math.min(v.c, v.o) < min ? "-100%" : num.toFixed(2) + "%";
+    });
+    coords.push(`${list}`);
+    // }
     /* *************************************************************** */
     if (index > -1) {
         results[index].coords.push(coords);
@@ -47,6 +48,9 @@ class AllsClass {
         if (dwm !== "d") return;
         let models = $methods.getModelLengthData(datas, start, 3);
         let [d0, d1, d2] = models;
+        if (!d0) return;
+        let flag = $methods.xd({ datas, start });
+        if (!flag) return;
         if ($methods.YingYang(d0) !== 1) return;
         if ($methods.YingYang(d1) !== 1) return;
         if ($methods.YingYang(d2) !== 2) return;
@@ -272,21 +276,20 @@ class AllsClass {
     isSbg3({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         if (!(start > 100)) return;
-        let models = datas.slice(start - 4, start + 1);
+        let models = datas.slice(start - 3, start + 1);
         if (!models[0]) return;
         let current = datas[start];
-        if (!($methods.YingYang(models[0]) === 2)) return;
+        if (!($methods.YingYang(models[0]) === 1)) return;
         if (!($methods.YingYang(models[1]) === 1)) return;
         if (!($methods.YingYang(models[2]) === 1)) return;
-        if (!($methods.YingYang(models[3]) === 1)) return;
+        if (!($methods.YingYang(models[3]) === 2)) return;
         if (current.l < models[3].l) return;
         const isHp = $methods.hp({ datas, start, current });
         if (!isHp) return;
         let min = Math.min(models[0].l, models[1].l, models[2].l, models[3].l);
         if (!(isHp.min < min)) return;
-        let buy = $methods.buyDate(current.d, 1);
-        let coords = ["isSbg3", current.d, buy];
-        exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: buy });
+        let coords = ["isSbg3", models[0].d, current.d];
+        exportResults({ results, models, datas, dwm, coords, startDay: models[0], buyDate: current });
     }
     isSlbw0({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
@@ -433,6 +436,8 @@ class AllsClass {
                 size = 25,
                 // page = 1,
                 index = 0,
+                start,
+                end,
                 count = -1,
                 // codes = "600",
                 codes = "600,601,603,000,002",
@@ -509,7 +514,12 @@ class AllsClass {
                 } else {
                     // 延伸60天，用作60均线的计算
                     const stretch = 60;
-                    let conditions = `code in (${item}) and dwm='${dwm}' and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 3) + stretch)}'`;
+                    let conditions = `code in (${item}) and dwm='${dwm}' and `;
+                    if (start && end) {
+                        conditions += `d >= '${start}' and d < '${end}'`;
+                    } else {
+                        conditions += `d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 3) + stretch)}'`;
+                    }
                     const res = await SQL.getTables({
                         connection,
                         name,
@@ -546,7 +556,7 @@ class AllsClass {
                     });
                     const results = Object.keys(datas)
                         .map((v) => {
-                            const data = datas[v];
+                            const data = datas[v].sort((x, y) => new Date(x.d).getTime() - new Date(y.d).getTime());
                             const res = _this.getModel({ item: data, date, dwm });
                             return res[0];
                         })
