@@ -55,7 +55,7 @@ class AllsClass {
         if ($methods.YingYang(d1) !== 1) return;
         if ($methods.YingYang(d2) !== 2) return;
         if (!($methods.entity(d0) < $methods.entity(d1) * 2)) return;
-        if (!(d0.c > d1.c)) return;
+        if (!(d0.c < d1.o)) return;
         if (!(d2.o < d1.c && d2.c > d1.c)) return;
         let coords = ["isKlyh", d0.d, d2.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d0, buyDate: d2 });
@@ -98,6 +98,7 @@ class AllsClass {
         if ($methods.YingYang(d6) !== 1) return;
         if ($methods.YingYang(d7) !== 2) return;
         // if (!slowDown(data, start)) return
+        if (!$methods.xd({ datas, start })) return;
 
         let coords = ["isQx1", d1.d, d7.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d7 });
@@ -115,6 +116,7 @@ class AllsClass {
         if ($methods.YingYang(d5) !== 1) return;
         if ($methods.YingYang(d6) !== 1) return;
         if ($methods.YingYang(d7) !== 2) return;
+        if (!$methods.xd({ datas, start })) return;
         // return [d1, d2, d3, d4, d5, d6, d7];
         let coords = ["isQx2", d1.d, d7.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d7 });
@@ -503,8 +505,8 @@ class AllsClass {
                 let item = stash.types[name];
                 if (!item) {
                     if (1 || isWirteExcel) {
-                        console.log(`-----预处理成功，生成Excel中(${dwm})`);
-                        await $methods.datasToExcel(resultsParams.codes, dwm);
+                        // console.log(`-----预处理成功，生成Excel中(${dwm})`);
+                        // await $methods.datasToExcel(resultsParams.codes, dwm);
                         console.log(`-----生成download-Excel中(${dwm})`);
                         await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }

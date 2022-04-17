@@ -4,6 +4,8 @@ const request = require("request");
 const nodeExcel = require("node-xlsx");
 const { MA } = require("../api/methods");
 const { sendMail } = require("../utils/sendEmail");
+const { modelsCode } = require("../utils/code");
+const SQL = require("../sql");
 
 class Methods {
     constructor() {}
@@ -166,10 +168,11 @@ class Methods {
         return y.padStart(4, 0) + "-" + m.padStart(2, 0) + "-" + d.padStart(2, 0);
     }
 
-    someDay(days = 0, symbol = "-") {
+    someDay(days = 0, symbol = "-", current) {
         let today = new Date();
+        let currentTime = current ? new Date(current).getTime() : today;
         let interval = 24 * 60 * 60 * 1000 * days;
-        let after = new Date(today - interval);
+        let after = new Date(currentTime - interval);
         let year = after.getFullYear();
         let month = after.getMonth() + 1 + "";
         let date = after.getDate() + "";
@@ -231,6 +234,7 @@ class Methods {
     downloadExcel(datas, dwm, mail) {
         return new Promise((rl, rj) => {
             let lists = [],
+                saveDatas = {},
                 newDatas = {},
                 counts = {},
                 html = "";
@@ -239,35 +243,22 @@ class Methods {
                 coords.forEach((d) => {
                     const [name] = d;
                     // 每个模型对应的 比较时间不同
-                    const days = {
-                        isKlyh: 7,
-                        isYjsd: 7,
-                        isQx1: 8,
-                        isQx2: 8,
-                        isFkwz: 7,
-                        isYydl: 11,
-                        isCsfr: 7,
-                        isGsdn: 7,
-                        isDy: 8,
-                        isFhlz: 7,
-                        isLzyy: 7,
-                        isCBZ: 8,
-                        isFlzt: 7,
-                        isLahm: 7,
-                        isSlbw0: 7,
-                        isSlbw1: 52,
-                        // isSlbw2: "xxx",
-                        isSlbw3: 7,
-                        isSlbw4: 13,
-                        isSlqs: 7,
-                        isG8M1: 7,
-                        isYylm: 25,
-                    }[name];
+                    const days = modelsCode[name];
                     const flag = this.compareTime(this.someDay(days), d[1]);
-                    flag && (counts[name] = (counts[name] || 0) + 1);
+                    const data = [v.code, d[1], d[2], dwm];
+                    if (flag) {
+                        counts[name] = (counts[name] || 0) + 1;
+                        // 表示当天的，和发的邮件保持一致
+                        data.push("Y");
+                    } else {
+                        // 补全数组长度
+                        data.push("");
+                    }
                     if (newDatas[name]) {
+                        saveDatas[name].push(data);
                         newDatas[name].push([v.code, d[1], d[2], d[3]]);
                     } else {
+                        saveDatas[name] = [data];
                         newDatas[name] = [[v.code, d[1], d[2], d[3]]];
                     }
                 });
@@ -284,11 +275,12 @@ class Methods {
                 const excelName = `download_${dwm}.xlsx`;
                 if (lists.length) {
                     const buffer = nodeExcel.build(lists);
-                    fs.writeFile(excelName, buffer, (err) => {
+                    fs.writeFile(excelName, buffer, async (err) => {
                         if (err) throw err;
                         html = this.getMailHtml(counts, mail, dwm);
-                        sendMail(html);
+                        // sendMail(html);
                         console.log("》》 -创建download-excel完成- 《《");
+                        await this.saveChooseModels2Tables(saveDatas);
                     });
                 } else {
                     console.log("》》 -未创建download-excel，没有模型- 《《");
@@ -298,6 +290,40 @@ class Methods {
                 console.log("error", error);
                 rj();
             }
+        });
+    }
+    saveChooseModels2Tables(datas) {
+        return new Promise((rl, rj) => {
+            let index = -1;
+            const lists = Object.entries(datas);
+            let fn = async function () {
+                const item = lists[++index];
+                if (item) {
+                    const dwm = item[1][0][3];
+
+                    console.log(`>>> 开始清除${SQL.base}_${item[0]}表 ...`);
+                    await SQL.deleteSQL({
+                        connection: global.customConnection,
+                        name: `${SQL.base}_${item[0]}`,
+                        conditions: `dwm='${dwm}'`,
+                    });
+
+                    console.log(`> ${SQL.base}_${item[0]} 已清空`);
+                    console.log(`>>> 开始存入${SQL.base}_${item[0]}表 ...`);
+                    await SQL.insertSQL({
+                        connection: global.customConnection,
+                        name: `${SQL.base}_${item[0]}(code, start, end, dwm, today)`,
+                        // values: `${item[1].map((v) => `('${v}')`)}`,
+                        values: `${item[1].map((v) => `(${v.map((d) => `'${d}'`)})`)}`,
+                    });
+                    console.log(`>>> ${SQL.base}_${item[0]} ...`);
+                    fn();
+                } else {
+                    console.log("》》 - 存入完成 - 《《");
+                    rl();
+                }
+            };
+            fn();
         });
     }
     excelToDatas(dwm, codes) {
@@ -348,6 +374,21 @@ class Methods {
         }
         let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
         return html;
+    }
+    callbackFn(datas, callback) {
+        return new Promise((rl, rj) => {
+            let index = -1;
+            let result;
+            let fn = async function () {
+                const item = datas[++index];
+                if (item) {
+                    result = (await callback) && callback(item, fn);
+                } else {
+                    rl(result);
+                }
+            };
+            fn();
+        });
     }
 }
 

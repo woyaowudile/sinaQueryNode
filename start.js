@@ -20,6 +20,7 @@ app.use(allowCrossDomain);
 app.listen(port, async () => {
     // 1. 链接数据库， 并开启定时任务
     let connection = await SQL.handleDisconnection([nodeSchedule]);
+    global.customConnection = connection;
     // 2. 开放接口
     runApi(app, connection);
     console.log("-\n--\n---");
@@ -28,6 +29,7 @@ app.listen(port, async () => {
     console.log(`http://localhost:${port}/api/init`);
     console.log(`http://localhost:${port}/api/update`);
     console.log(`http://localhost:${port}/api/query`);
+    console.log(`http://localhost:${port}/api/clear`);
     console.log(`http://localhost:${port}/api/querybefore`);
     console.log(`http://localhost:${port}/api/duplicate/remove`);
     console.log(`http://localhost:${port}/api/download`);
