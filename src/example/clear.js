@@ -2,7 +2,7 @@
 
 const request = require("request");
 const SQL = require("../sql");
-const { modelsCode } = require("../utils/code");
+const { modelsCode, otherTableCodes } = require("../utils/code");
 
 module.exports = function (app, connection) {
     app.get("/api/clear", async (req, res) => {
@@ -16,7 +16,10 @@ module.exports = function (app, connection) {
                     distinct: `DISTINCT type`,
                     name: "ig502_list",
                 });
-                keys = keys.concat(res.data.map((v) => v.type));
+                keys = keys.concat(
+                    res.data.map((v) => v.type),
+                    otherTableCodes
+                );
                 break;
         }
         let sql = `DROP TABLE ${keys.map((v) => `${SQL.base}_${v}`)}`;

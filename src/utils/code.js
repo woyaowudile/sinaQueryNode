@@ -24,4 +24,6 @@ const modelsCode = {
     isYylm: 25,
 };
 
-module.exports = { modelsCode };
+const otherTableCodes = ["fail", "today", "used"];
+
+module.exports = { modelsCode, otherTableCodes };
