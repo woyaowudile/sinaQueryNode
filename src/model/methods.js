@@ -278,7 +278,7 @@ class Methods {
                     fs.writeFile(excelName, buffer, async (err) => {
                         if (err) throw err;
                         html = this.getMailHtml(counts, mail, dwm);
-                        // sendMail(html);
+                        sendMail(html);
                         console.log("》》 -创建download-excel完成- 《《");
                         await this.saveChooseModels2Tables(saveDatas);
                     });

@@ -564,7 +564,7 @@ class AllsClass {
                         })
                         .filter((v) => v);
                     resultsParams.downloads = resultsParams.downloads.concat(results);
-                    resultsParams.codes = resultsParams.codes.concat(datas);
+                    // resultsParams.codes = resultsParams.codes.concat(datas);
                     getDatasFn(arrs, lenth);
                 }
             };
