@@ -119,9 +119,9 @@ class Methods {
             max: Math.max(...list.map((v) => v.h)),
         };
     }
-    xd({ datas, start }) {
+    xd({ datas, start, days = 30 }) {
         const current = datas[start];
-        const lists = this.reserveFn(datas, start, 30);
+        const lists = this.reserveFn(datas, start, days);
         const index = lists.every((v, i) => {
             let min = Math.min(v.o, v.c);
             return current.l < min;
