@@ -129,6 +129,7 @@ function addOtherTable(connection) {
             "buy varchar(10)",
             "buy_date varchar(10)",
             "sale_date varchar(10)",
+            "price varchar(10)",
             "code varchar(10)",
             "type varchar(10)",
             "dwm varchar(10)",
@@ -166,6 +167,7 @@ function addModelsTable(connection) {
         let arr1 = [
             "id int auto_increment PRIMARY KEY",
             "code varchar(10)",
+            "type varchar(10)",
             "start varchar(10)",
             "end varchar(10)",
             "dwm varchar(10)",

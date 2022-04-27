@@ -54,8 +54,12 @@ class AllsClass {
         if ($methods.YingYang(d0) !== 1) return;
         if ($methods.YingYang(d1) !== 1) return;
         if ($methods.YingYang(d2) !== 2) return;
-        if (!($methods.entity(d0) < $methods.entity(d1) * 2)) return;
-        if (!(d0.c < d1.o)) return;
+        if (!($methods.abs(d0) < $methods.abs(d1) * 2)) return;
+        // 阳线不能太大
+        // if (!($methods.abs(d1) > $methods.abs(d2))) return;
+        if (!(d0.o > d1.o)) return;
+        // 加分条件 阴线跳开
+        if (!(d0.c > d1.o)) return;
         if (!(d2.o < d1.c && d2.c > d1.c)) return;
         let coords = ["isKlyh", d0.d, d2.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d0, buyDate: d2 });
@@ -409,6 +413,32 @@ class AllsClass {
         let coords = ["isSlqs", d2.d, d3.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d3 });
     }
+    isPjtl({ results, datas, start, dwm }) {
+        if (dwm !== "d") return;
+        let current = datas[start];
+        if (current.d === "2018-07-06" && current.code === "603699") {
+            debugger;
+        }
+        let isXd = $methods.xd({ datas, start: start - 1 });
+        if (!isXd) return;
+        // let lists = datas.slice(start, datas.length)
+        let index = datas.findIndex((v, i) => {
+            if (i > start + 40) {
+                return v.l < current.l;
+            }
+        });
+        if (index > -1) {
+            let lists = datas.slice(start + 1, index);
+            let ok = lists.every((v) => v.l > current.l);
+            if (!ok) return;
+        }
+        let end = datas[index];
+        if (!end) return;
+        let buy = datas[index + 1];
+        if (!buy) return;
+        let coords = ["isPjtl", current.d, end.d];
+        exportResults({ results, models: [end], datas, dwm, coords, startDay: current, buyDate: buy });
+    }
     isG8M1({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
         if (start < 60) return;
@@ -441,7 +471,8 @@ class AllsClass {
                 start,
                 end,
                 count = -1,
-                // codes = "600",
+                // codes = "603",
+                // models = ["isPjtl"],
                 codes = "600,601,603,000,002",
                 models,
                 mail = "query-before",
@@ -507,9 +538,10 @@ class AllsClass {
                     if (1 || isWirteExcel) {
                         // console.log(`-----预处理成功，生成Excel中(${dwm})`);
                         // await $methods.datasToExcel(resultsParams.codes, dwm);
-                        console.log(`-----生成download-Excel中(${dwm})`);
-                        await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
+                        // console.log(`-----生成download-Excel中(${dwm})`);
+                        // await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }
+                    console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
                     rl(resultsParams.codes);
                     resultsParams.codes = [];
                     resultsParams.downloads = [];
@@ -520,7 +552,7 @@ class AllsClass {
                     if (start && end) {
                         conditions += `d >= '${start}' and d < '${end}'`;
                     } else {
-                        conditions += `d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 3) + stretch)}'`;
+                        conditions += `d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
                     }
                     const res = await SQL.getTables({
                         connection,
@@ -604,6 +636,7 @@ class AllsClass {
                     this.isDy(params);
                     break;
                 case 2:
+                    // this.isPjtl(params);
                     this.isYjsd(params); // ok
                     this.isYydl(params); // ok
                     this.isGsdn(params); // ok

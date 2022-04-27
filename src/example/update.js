@@ -51,10 +51,9 @@ function getContent({ codes, query }) {
 
 module.exports = function (app, connection) {
     app.get("/api/update", async (req, res) => {
-        console.log(`-------------开始执行 /api/update---------------`);
-
         let { query } = req;
         let dwm = query.dwm || "d";
+        console.log(`-------------开始执行 /api/update?${dwm}---------------`);
         // 获取到today还没被update的code
         let used = await SQL.getTables({
             connection,
@@ -134,7 +133,7 @@ module.exports = function (app, connection) {
                     await $methods.duplicateRemove();
                     await $model.quertBefore({ dwm, mail: "update" }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
-                    console.log(`-------------执行完成 /api/update---------------`);
+                    console.log(`-------------执行完成 /api/update?${dwm}---------------`);
                 }
             }
         };

@@ -27,6 +27,11 @@ class Methods {
         let results = data.slice(start, maxLength);
         return !flag ? (results.length === leng ? results : []) : results;
     }
+    abs(data) {
+        if (!data) return;
+        let { o, c } = data;
+        return Math.abs(c - o);
+    }
     entity(data) {
         // 实体: (收-开)/开
         if (!data) return;
@@ -81,7 +86,8 @@ class Methods {
         }
     }
     reserveFn(datas, start, num) {
-        const arrs = datas.slice(start - num, start) || [];
+        const index = start - num > 0 ? start - num : 0;
+        const arrs = datas.slice(index, start) || [];
         return arrs.reverse();
     }
     hp({ datas, start, current }) {
@@ -120,6 +126,8 @@ class Methods {
         };
     }
     xd({ datas, start, days = 30 }) {
+        if (datas.length < days) return;
+        if (!datas[start]) return;
         const current = datas[start];
         const lists = this.reserveFn(datas, start, days);
         const index = lists.every((v, i) => {
@@ -310,11 +318,15 @@ class Methods {
 
                     console.log(`> ${SQL.base}_${item[0]} 已清空`);
                     console.log(`>>> 开始存入${SQL.base}_${item[0]}表 ...`);
+                    const values = `${item[1].map((v) => {
+                        const lists = v.unshift(v[0].slice(0, 3));
+                        return `(${lists.map((d) => `'${d}'`)})`;
+                    })}`;
                     await SQL.insertSQL({
                         connection: global.customConnection,
-                        name: `${SQL.base}_${item[0]}(code, start, end, dwm, today)`,
+                        name: `${SQL.base}_${item[0]}(type, code, start, end, dwm, today)`,
                         // values: `${item[1].map((v) => `('${v}')`)}`,
-                        values: `${item[1].map((v) => `(${v.map((d) => `'${d}'`)})`)}`,
+                        values,
                     });
                     console.log(`>>> ${SQL.base}_${item[0]} ...`);
                     fn();

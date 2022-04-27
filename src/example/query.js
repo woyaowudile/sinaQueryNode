@@ -270,7 +270,7 @@ module.exports = function (app, connection) {
             let callback1 = (datas) => {
                 return new Promise(async (rl, rj) => {
                     let index = -1;
-                    const codes = datas.map((v) => v[0][0]) || [[]];
+                    const codes = datas.map((v) => v[0][1]) || [[]];
                     const tableNames = [];
                     codes.forEach((v) => {
                         const type = v.slice(0, 3);
@@ -304,7 +304,7 @@ module.exports = function (app, connection) {
                         newDatas.forEach((v) => {
                             v.data = v.data.sort((x, y) => new Date(x.d).getTime() - new Date(y.d).getTime());
 
-                            const coords = datas.find((d) => d[0][0] === v.name);
+                            const coords = datas.find((d) => d[0][1] === v.name);
                             sendResults.data.push({ buy: date, code: v.name, datas: v.data, dwm, coords });
                         });
                         console.log(`>>> 处理send数据`);
@@ -320,7 +320,7 @@ module.exports = function (app, connection) {
                         // 现在查询的速度差不多8-12s，
                         // if (!resultsModelsCode[item]) {
                         console.log(`>> 正在查询：${item}`);
-                        let name = `${SQL.base}_${item} where end >= '${newDate}'`;
+                        let name = `${SQL.base}_${item} where end >= '${newDate}' and dwm = ${dwm}`;
                         if (isToday === "Y") {
                             name += ` and today='${isToday}'`;
                         }
@@ -331,9 +331,9 @@ module.exports = function (app, connection) {
                         const pushModelsCode = {};
                         res.data.forEach((v, i) => {
                             if (pushModelsCode[v.code]) {
-                                pushModelsCode[v.code].push([v.code, v.start, v.end]);
+                                pushModelsCode[v.code].push([item, v.code, v.start, v.end]);
                             } else {
-                                pushModelsCode[v.code] = [[v.code, v.start, v.end]];
+                                pushModelsCode[v.code] = [[item, v.code, v.start, v.end]];
                             }
                         });
                         resultsModelsCode[item] = pushModelsCode;
@@ -387,6 +387,48 @@ module.exports = function (app, connection) {
             index: 0,
             message: "成功",
             data: resultsDownload,
+        };
+        res.send(getSend({ result: sendResults }));
+    });
+    app.get("/api/analog", async (req, res) => {
+        console.log(`-------------开始执行 /api/analog---------------`);
+        let { days, startDate, endDate, dwm = "d", codes = "600,601,603,000,002", models, random } = req.query;
+        let conditions = `dwm='${dwm}' and start >= '${$methods.someDay(0, "-", startDate)}' `;
+        if (endDate) {
+            conditions += ` and ${endDate} >= end`;
+        }
+        const queryRes = await SQL.querySQL({
+            connection,
+            name: `${SQL.base}_${models}`,
+            conditions,
+        });
+        console.log("》》 -- 查询analog成功 -- 《《");
+        const sendResults = {
+            code: 0,
+            index: 0,
+            message: "成功",
+            data: {
+                coords: queryRes.data.map((v) => [models, v.code, v.start, v.end]),
+            },
+        };
+        res.send(getSend({ result: sendResults }));
+    });
+
+    app.get("/api/queryOne", async (req, res) => {
+        console.log(`-------------开始执行 /api/queryOne---------------`);
+        let { code, dwm = "d" } = req.query;
+        let type = code.slice(0, 3);
+        const queryRes = await SQL.querySQL({
+            connection,
+            name: `${SQL.base}_${type}`,
+            conditions: `dwm='${dwm}' and code = '${code}'`,
+        });
+        console.log("》》 -- 查询queryOne成功 -- 《《");
+        const sendResults = {
+            code: 0,
+            index: 0,
+            message: "成功",
+            data: queryRes.data,
         };
         res.send(getSend({ result: sendResults }));
     });

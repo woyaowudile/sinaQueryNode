@@ -1,3 +1,4 @@
+// 数字表示天数，目前只在 downloadexcel方法中用到
 const modelsCode = {
     isKlyh: 7,
     isYjsd: 7,
@@ -22,6 +23,7 @@ const modelsCode = {
     isSbg3: 7,
     isG8M1: 7,
     isYylm: 25,
+    isPjtl: 90,
 };
 
 const otherTableCodes = ["fail", "today", "used"];
