@@ -4,7 +4,7 @@ const { MA } = require("../api/methods");
 const SQL = require("../sql");
 const $methods = require("./methods");
 const request = require("request");
-const sendEmail = require("../utils/sendEmail");
+const { sendEmail } = require("../utils/sendEmail");
 
 let count = 0;
 
