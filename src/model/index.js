@@ -3,6 +3,8 @@
 const { MA } = require("../api/methods");
 const SQL = require("../sql");
 const $methods = require("./methods");
+const request = require("request");
+const sendEmail = require("../utils/sendEmail");
 
 let count = 0;
 
@@ -49,12 +51,15 @@ class AllsClass {
         let models = $methods.getModelLengthData(datas, start, 3);
         let [d0, d1, d2] = models;
         if (!d0) return;
+        // if (d0.code === "002582" && d0.d === "2021-07-07") {
+        //     debugger;
+        // }
         let flag = $methods.xd({ datas, start });
         if (!flag) return;
         if ($methods.YingYang(d0) !== 1) return;
         if ($methods.YingYang(d1) !== 1) return;
         if ($methods.YingYang(d2) !== 2) return;
-        if (!($methods.abs(d0) < $methods.abs(d1) * 2)) return;
+        if (!($methods.abs(d0) * 2 < $methods.abs(d1))) return;
         // 阳线不能太大
         // if (!($methods.abs(d1) > $methods.abs(d2))) return;
         if (!(d0.o > d1.o)) return;
@@ -471,7 +476,7 @@ class AllsClass {
                 start,
                 end,
                 count = -1,
-                // codes = "603",
+                // codes = "002",
                 // models = ["isPjtl"],
                 codes = "600,601,603,000,002",
                 models,
@@ -480,7 +485,7 @@ class AllsClass {
             let resultsParams = {
                 init: true,
                 codes: [],
-                downloads: [],
+                downloads: {},
                 waiting: false,
                 status: "",
             };
@@ -541,10 +546,12 @@ class AllsClass {
                         // console.log(`-----生成download-Excel中(${dwm})`);
                         // await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }
+                    const html = $methods.getMailHtml(resultsParams.downloads, mail, dwm);
+                    sendEmail(html);
                     console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
                     rl(resultsParams.codes);
                     resultsParams.codes = [];
-                    resultsParams.downloads = [];
+                    resultsParams.downloads = {};
                 } else {
                     // 延伸60天，用作60均线的计算
                     const stretch = 60;
@@ -595,12 +602,28 @@ class AllsClass {
                             return res[0];
                         })
                         .filter((v) => v);
-                    resultsParams.downloads = resultsParams.downloads.concat(results);
+                    await $methods.downloadExcel(results, dwm, resultsParams.downloads);
+                    // resultsParams.downloads = resultsParams.downloads.concat(results);
                     // resultsParams.codes = resultsParams.codes.concat(datas);
                     getDatasFn(arrs, lenth);
                 }
             };
-            fn();
+            // 先将表清空
+            request(
+                {
+                    url: "http://localhost:3334/api/clear",
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "text/json",
+                    },
+                },
+                (error, response, body) => {
+                    if (!error) {
+                        fn();
+                    }
+                }
+            );
+            // fn();
         });
     }
     getModel({ item: datas, date, dwm }) {

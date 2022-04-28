@@ -239,12 +239,11 @@ class Methods {
             fn();
         });
     }
-    downloadExcel(datas, dwm, mail) {
-        return new Promise((rl, rj) => {
+    downloadExcel(datas, dwm, counts = {}) {
+        return new Promise(async (rl, rj) => {
             let lists = [],
                 saveDatas = {},
                 newDatas = {},
-                counts = {},
                 html = "";
             datas.forEach((v) => {
                 const coords = v.coords;
@@ -282,18 +281,18 @@ class Methods {
             try {
                 const excelName = `download_${dwm}.xlsx`;
                 if (lists.length) {
-                    const buffer = nodeExcel.build(lists);
-                    fs.writeFile(excelName, buffer, async (err) => {
-                        if (err) throw err;
-                        html = this.getMailHtml(counts, mail, dwm);
-                        sendMail(html);
-                        console.log("》》 -创建download-excel完成- 《《");
-                        await this.saveChooseModels2Tables(saveDatas);
-                    });
+                    // const buffer = nodeExcel.build(lists);
+                    // fs.writeFile(excelName, buffer, async (err) => {
+                    //     if (err) throw err;
+                    //     html = this.getMailHtml(counts, mail, dwm);
+                    //     sendMail(html);
+                    //     console.log("》》 -创建download-excel完成- 《《");
+                    await this.saveChooseModels2Tables(saveDatas);
+                    // });
                 } else {
                     console.log("》》 -未创建download-excel，没有模型- 《《");
                 }
-                rl(excelName);
+                rl(counts);
             } catch (error) {
                 console.log("error", error);
                 rj();
@@ -307,20 +306,20 @@ class Methods {
             let fn = async function () {
                 const item = lists[++index];
                 if (item) {
-                    const dwm = item[1][0][3];
+                    // const dwm = item[1][0][3];
 
-                    console.log(`>>> 开始清除${SQL.base}_${item[0]}表 ...`);
-                    await SQL.deleteSQL({
-                        connection: global.customConnection,
-                        name: `${SQL.base}_${item[0]}`,
-                        conditions: `dwm='${dwm}'`,
-                    });
+                    // console.log(`>>> 开始清除${SQL.base}_${item[0]}表 ...`);
+                    // await SQL.deleteSQL({
+                    //     connection: global.customConnection,
+                    //     name: `${SQL.base}_${item[0]}`,
+                    //     conditions: `dwm='${dwm}'`,
+                    // });
 
-                    console.log(`> ${SQL.base}_${item[0]} 已清空`);
+                    // console.log(`> ${SQL.base}_${item[0]} 已清空`);
                     console.log(`>>> 开始存入${SQL.base}_${item[0]}表 ...`);
                     const values = `${item[1].map((v) => {
-                        const lists = v.unshift(v[0].slice(0, 3));
-                        return `(${lists.map((d) => `'${d}'`)})`;
+                        v.unshift(v[0].slice(0, 3));
+                        return `(${v.map((d) => `'${d}'`)})`;
                     })}`;
                     await SQL.insertSQL({
                         connection: global.customConnection,

@@ -23,7 +23,7 @@ module.exports = function (app, connection) {
                 break;
         }
         let sql = `DROP TABLE ${keys.map((v) => `${SQL.base}_${v}`)}`;
-        connection.query(sql, (err, res) => {
+        connection.query(sql, (err, result) => {
             if (err) {
                 console.log(`>> clear_${type}失败: ${err.message}`);
                 return;
@@ -37,7 +37,11 @@ module.exports = function (app, connection) {
                         "Content-Type": "text/json",
                     },
                 },
-                (error, response, body) => {}
+                (error, response, body) => {
+                    if (!error) {
+                        res.send("ok");
+                    }
+                }
             );
         });
     });
