@@ -4,7 +4,7 @@ const { MA } = require("../api/methods");
 const SQL = require("../sql");
 const $methods = require("./methods");
 const request = require("request");
-const { sendEmail } = require("../utils/sendEmail");
+const { sendMail } = require("../utils/sendEmail");
 
 let count = 0;
 
@@ -547,7 +547,7 @@ class AllsClass {
                         // await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }
                     const html = $methods.getMailHtml(resultsParams.downloads, mail, dwm);
-                    sendEmail(html);
+                    sendMail(html);
                     console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
                     rl(resultsParams.codes);
                     resultsParams.codes = [];
