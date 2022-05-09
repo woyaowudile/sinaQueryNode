@@ -51,7 +51,8 @@ class Methods {
         // 大于 > 5 % 大阴阳线
         // todo ... 处理一字涨停板
         let [pre, current] = data;
-        return ((current.c - pre.c) / pre.c) * 100;
+        let result = ((current.c - pre.c) / pre.c) * 100;
+        return result.toFixed(2);
     }
     zs(data, start, date, compare) {
         let datas = this.getModelLengthData(data, start, date);
@@ -89,6 +90,48 @@ class Methods {
         const index = start - num > 0 ? start - num : 0;
         const arrs = datas.slice(index, start) || [];
         return arrs.reverse();
+    }
+    splitBlock(datas) {
+        let index = 0,
+            arrs = [],
+            currentTime = "";
+        datas.forEach((v) => {
+            const date = new Date(v.d);
+            const day = date.getDay();
+            if (currentTime && currentTime + 1 * 24 * 60 * 60 !== date.getTime()) {
+                // 如果不是相连的日期，表示
+                index++;
+            }
+            // 处理结果
+            currentTime = date.getTime();
+            const arr = arrs[index];
+            if (arr) {
+                arr.max = Math.max(arr.max, v.c, v.o);
+                arr.min = Math.min(arr.min, v.c, v.o);
+                arr.list.push(v);
+                arr.maxPosition = arr.list.findIndex((d) => arr.max < Math.max(d.c, d.v));
+                arr.minPosition = arr.list.findIndex((d) => arr.min < Math.min(d.c, d.v));
+            } else {
+                arr = {
+                    max: Math.max(v.c, v.o), // 还是用v.h更好
+                    min: Math.min(v.c, v.o), // 还是用v.l更好
+                    maxPosition: 0,
+                    minPosition: 0,
+                    list: [v],
+                };
+            }
+        });
+        arrs.forEach((v) => {
+            const { maxPosition, minPosition } = v;
+            if (maxPosition > minPosition) {
+                v.status = 3;
+            } else if (maxPosition < minPosition) {
+                v.status = 1;
+            } else {
+                v.status = 2;
+            }
+        });
+        return arrs;
     }
     hp({ datas, start, current }) {
         const max = current.c;
@@ -186,10 +229,10 @@ class Methods {
         let date = after.getDate() + "";
         return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
     }
-    compareTime(dataA, dataB) {
+    compareTime(dataA, dataB, equal) {
         let atime = new Date(dataA).getTime();
         let btime = new Date(dataB).getTime();
-        return btime > atime;
+        return equal === "=" ? btime === atime : btime > atime;
     }
     write({ keys, lists, dwm }) {
         return new Promise((rl, rj) => {
@@ -257,10 +300,13 @@ class Methods {
                         counts[name] = (counts[name] || 0) + 1;
                         // 表示当天的，和发的邮件保持一致
                         data.push("Y");
+                        // 判断是否成功
                     } else {
                         // 补全数组长度
                         data.push("");
                     }
+
+                    data.push(d[3] + ";");
                     if (newDatas[name]) {
                         saveDatas[name].push(data);
                         newDatas[name].push([v.code, d[1], d[2], d[3]]);
@@ -299,6 +345,25 @@ class Methods {
             }
         });
     }
+    isSuccess(datas, data) {
+        let index = datas.findIndex((v) => this.compareTime(data[2], v.d));
+        let find = datas.find((v) => this.compareTime(data[2], v.d, "="));
+        let newDatas = datas.slice(index, datas.length);
+        let remark = "",
+            preD = find;
+        newDatas.some((v, i) => {
+            // 22日内的结果
+            if (i > 22) return true;
+            // 没有跌破模型的
+            if (v.c < find.o) {
+                return true;
+            }
+            remark += this.zdf([preD, v]) + ",";
+            preD = v;
+        });
+        remark += ";";
+        return remark;
+    }
     saveChooseModels2Tables(datas) {
         return new Promise((rl, rj) => {
             let index = -1;
@@ -323,7 +388,7 @@ class Methods {
                     })}`;
                     await SQL.insertSQL({
                         connection: global.customConnection,
-                        name: `${SQL.base}_${item[0]}(type, code, start, end, dwm, today)`,
+                        name: `${SQL.base}_${item[0]}(type, code, start, end, dwm, today, remark)`,
                         // values: `${item[1].map((v) => `('${v}')`)}`,
                         values,
                     });

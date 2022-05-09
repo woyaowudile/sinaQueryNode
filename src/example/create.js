@@ -172,6 +172,7 @@ function addModelsTable(connection) {
             "end varchar(10)",
             "dwm varchar(10)",
             "today varchar(10)",
+            "remark varchar(255)",
         ];
         let names = Object.keys(modelsCode).map((v) => ({ word: `${SQL.base}_${v}`, conditions: arr1 }));
         console.log(`>>>>>>>>>>>> 共${names.length}条 准备创建新表中...`);

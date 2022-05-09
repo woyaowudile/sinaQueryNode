@@ -17,16 +17,16 @@ function exportResults({ results, models, datas, dwm, coords, startDay, buyDate 
     //     debugger;
     // }
     let resIndex = datas.findIndex((v) => v.d === buyDate.d);
-    let res10 = datas.slice(resIndex + 1, resIndex + 10);
+    let res22 = datas.slice(resIndex + 1, resIndex + 22);
     let modelsIndex = models.findIndex((v) => v.d === buyDate.d);
     let min = Math.min(...models.slice(0, modelsIndex).map((v) => Math.min(v.c, v.o)));
-    // let isFail = res10.some((v) => Math.min(v.c, v.o) < min) && "失败";
+    // let isFail = res22.some((v) => Math.min(v.c, v.o) < min) && "失败";
     // if (isFail) {
     //     coords.push(isFail);
     // } else {
-    const list = res10.map((v, i) => {
+    const list = res22.map((v, i) => {
         const num = $methods.zdf([buyDate, v]);
-        return Math.min(v.c, v.o) < min ? "-100%" : num.toFixed(2) + "%";
+        return num + "%";
     });
     coords.push(`${list}`);
     // }

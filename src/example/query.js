@@ -320,7 +320,7 @@ module.exports = function (app, connection) {
                         // 现在查询的速度差不多8-12s，
                         // if (!resultsModelsCode[item]) {
                         console.log(`>> 正在查询：${item}`);
-                        let name = `${SQL.base}_${item} where end >= '${newDate}' and dwm = ${dwm}`;
+                        let name = `${SQL.base}_${item} where end >= '${newDate}' and dwm = '${dwm}'`;
                         if (isToday === "Y") {
                             name += ` and today='${isToday}'`;
                         }
@@ -395,7 +395,7 @@ module.exports = function (app, connection) {
         let { days, startDate, endDate, dwm = "d", codes = "600,601,603,000,002", models, random } = req.query;
         let conditions = `dwm='${dwm}' and start >= '${$methods.someDay(0, "-", startDate)}' `;
         if (endDate) {
-            conditions += ` and ${endDate} >= end`;
+            conditions += ` and '${endDate}' >= end`;
         }
         const queryRes = await SQL.querySQL({
             connection,
@@ -408,7 +408,14 @@ module.exports = function (app, connection) {
             index: 0,
             message: "成功",
             data: {
-                coords: queryRes.data.map((v) => [models, v.code, v.start, v.end]),
+                coords: queryRes.data.map((v) => {
+                    const coords = [models, v.code, v.start, v.end];
+                    if (v.remark) {
+                        const remark = v.remark.split(";");
+                        coords.push(remark[0]);
+                    }
+                    return coords;
+                }),
             },
         };
         res.send(getSend({ result: sendResults }));
