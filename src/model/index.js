@@ -51,15 +51,16 @@ class AllsClass {
         let models = $methods.getModelLengthData(datas, start, 3);
         let [d0, d1, d2] = models;
         if (!d0) return;
-        // if (d0.code === "002582" && d0.d === "2021-07-07") {
-        //     debugger;
-        // }
+        if ($methods.YingYang(d0) !== 1) return;
+        if ($methods.shadowLineTooLong(d0)) return;
+        if ($methods.YingYang(d1) !== 1) return;
+        if ($methods.shadowLineTooLong(d1)) return;
+        if ($methods.YingYang(d2) !== 2) return;
+        if ($methods.shadowLineTooLong(d2)) return;
         let flag = $methods.xd({ datas, start });
         if (!flag) return;
-        if ($methods.YingYang(d0) !== 1) return;
-        if ($methods.YingYang(d1) !== 1) return;
-        if ($methods.YingYang(d2) !== 2) return;
         if (!($methods.abs(d0) * 2 < $methods.abs(d1))) return;
+        // $methods.splitBlock(datas.slice(start - 30 < 0 ? 0 : start - 30, start));
         // 阳线不能太大
         // if (!($methods.abs(d1) > $methods.abs(d2))) return;
         if (!(d0.o > d1.o)) return;
@@ -278,6 +279,7 @@ class AllsClass {
         let [d1] = models;
         if (!d1) return;
         let [val] = models.slice(-1);
+        if ($methods.YingYang(val) !== 2) return;
         let [result] = $methods.xiong(models);
         if (!result) return;
         if (!(val.c > result.o)) return;
@@ -335,6 +337,7 @@ class AllsClass {
         let models = datas.slice(start, datas.length - 1);
         let [d1] = models;
         if (!d1) return;
+        if (d1.zd > 9.7) return;
         // 突破箱体
         let current = datas[start];
         const index = models.findIndex((v, i) => {
@@ -626,10 +629,34 @@ class AllsClass {
             // fn();
         });
     }
-    getModel({ item: datas, date, dwm }) {
+    getModel({ item: datas, date, dwm, inModels }) {
         let coords = [],
             results = [];
         let current = new Date(date).getTime();
+        let models = [
+            "isKlyh",
+            "isQx1",
+            "isQx2",
+            // "isFkwz",
+            "isCsfr",
+            // "isLahm",
+            // "isSlbw0",
+            "isSlbw1",
+            // "isSlbw2",
+            "isSlbw3",
+            // "isSlbw4",
+            "isDy",
+            // "isPjtl",
+            "isYjsd",
+            "isYydl",
+            "isGsdn",
+            "isFhlz",
+            "isLzyy",
+            "isFlzt",
+            "isSbg3",
+            // 'isG8M1',
+            // 'isYylm',
+        ].filter((v) => (inModels ? inModels.includes(v) : true));
 
         datas.forEach((level1, index1) => {
             let { zd, d } = level1;
@@ -644,44 +671,7 @@ class AllsClass {
                 results,
             };
 
-            // this.isG8M1(params);
-            // this.isYylm(params);
-            switch ($methods.YingYang(level1)) {
-                case 1:
-                    this.isKlyh(params); // ok
-                    this.isQx1(params); // ok
-                    this.isQx2(params); // ok
-                    // this.isFkwz(params); // 大阴线不够大
-                    this.isCsfr(params); // ok
-                    // // this.isLahm(params); // 大阴线不够大
-                    // // this.isSlbw0(params); // x
-                    // // name && name(params);
-                    this.isDy(params);
-                    break;
-                case 2:
-                    // this.isPjtl(params);
-                    this.isYjsd(params); // ok
-                    this.isYydl(params); // ok
-                    this.isGsdn(params); // ok
-                    this.isFhlz(params); // ok
-                    this.isLzyy(params); // ok
-                    this.isFlzt(params); // ok
-                    this.isSbg3(params); // ok
-                    if (zd <= 9.5) {
-                        // } else if (4 < zd && zd < 6) {
-                        //     this.isSlbw4(params);
-                    } else {
-                        this.isSlbw1(params); // ok
-                        //     // this.isSlbw2(params); // x
-                        this.isSlbw3(params); // ok
-                    }
-                    break;
-                case 3:
-                    break;
-                default:
-                    break;
-            }
-            // this.qs(datas, [''])
+            models.forEach((v) => this[v](params));
         });
         // let results = {
         //     coords,

@@ -40,6 +40,14 @@ class Methods {
         // 大实体：, 中实体：>0.0179-0.0310 ， 小实体：
         return (Math.abs(c - o) / max).toFixed(4) / 1;
     }
+    shadowLineTooLong(data, number = 0.25) {
+        let { l, h, c, o } = data;
+        let max = Math.max(c, o);
+        let shadow = h - max;
+        let entity = Math.abs(c - o);
+        // 影线占实体的1/4
+        return shadow / entity > number;
+    }
     zf(data) {
         let current = data[data.length - 1];
         let pre = data[data.length - 2];
@@ -98,21 +106,25 @@ class Methods {
         datas.forEach((v) => {
             const date = new Date(v.d);
             const day = date.getDay();
-            if (currentTime && currentTime + 1 * 24 * 60 * 60 !== date.getTime()) {
+            if (currentTime && currentTime + 1 * 24 * 60 * 60 * 1000 !== date.getTime()) {
                 // 如果不是相连的日期，表示
                 index++;
             }
             // 处理结果
             currentTime = date.getTime();
-            const arr = arrs[index];
+            let arr = arrs[index];
             if (arr) {
                 arr.max = Math.max(arr.max, v.c, v.o);
                 arr.min = Math.min(arr.min, v.c, v.o);
                 arr.list.push(v);
-                arr.maxPosition = arr.list.findIndex((d) => arr.max < Math.max(d.c, d.v));
-                arr.minPosition = arr.list.findIndex((d) => arr.min < Math.min(d.c, d.v));
+                arr.maxPosition = arr.list.findIndex((d) => arr.max === Math.max(d.c, d.o));
+                arr.minPosition = arr.list.findIndex((d) => arr.min === Math.min(d.c, d.o));
+
+                let pre = arr.list[arr.maxPosition - arr.minPosition > 0 ? arr.minPosition : arr.maxPosition];
+                let current = arr.list[arr.maxPosition - arr.minPosition > 0 ? arr.maxPosition : arr.minPosition];
+                arr.zdf = this.zdf([pre, current]);
             } else {
-                arr = {
+                arrs[index] = {
                     max: Math.max(v.c, v.o), // 还是用v.h更好
                     min: Math.min(v.c, v.o), // 还是用v.l更好
                     maxPosition: 0,
@@ -122,13 +134,17 @@ class Methods {
             }
         });
         arrs.forEach((v) => {
-            const { maxPosition, minPosition } = v;
+            const { maxPosition, minPosition, zdf } = v;
+
             if (maxPosition > minPosition) {
-                v.status = 3;
-            } else if (maxPosition < minPosition) {
                 v.status = 1;
+            } else if (maxPosition < minPosition) {
+                v.status = 3;
             } else {
                 v.status = 2;
+            }
+            if (v.status !== 2) {
+                zdf < 2 && (v.status = 2);
             }
         });
         return arrs;
@@ -169,15 +185,15 @@ class Methods {
         };
     }
     xd({ datas, start, days = 30 }) {
-        if (datas.length < days) return;
         if (!datas[start]) return;
         const current = datas[start];
         const lists = this.reserveFn(datas, start, days);
-        const index = lists.every((v, i) => {
+        if (lists < days) return;
+        const flag = lists.every((v, i) => {
             let min = Math.min(v.o, v.c);
             return current.l < min;
         });
-        return index;
+        return flag;
     }
     xiong(data) {
         let arr = [];

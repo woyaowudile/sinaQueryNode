@@ -423,13 +423,22 @@ module.exports = function (app, connection) {
 
     app.get("/api/queryOne", async (req, res) => {
         console.log(`-------------开始执行 /api/queryOne---------------`);
-        let { code, dwm = "d" } = req.query;
+
+        let { startDate, endDate, dwm = "d", code, models } = req.query;
         let type = code.slice(0, 3);
+        let conditions = `dwm='${dwm}' and code = '${code}' `;
+        if (startDate) {
+            conditions += ` and d >= '${$methods.someDay(0, "-", startDate)}' `;
+        }
+        if (endDate) {
+            conditions += ` and '${endDate}' >= d`;
+        }
         const queryRes = await SQL.querySQL({
             connection,
             name: `${SQL.base}_${type}`,
-            conditions: `dwm='${dwm}' and code = '${code}'`,
+            conditions,
         });
+        $model.getModel({ item: queryRes.data, date: startDate, dwm, inModels: [models] });
         console.log("》》 -- 查询queryOne成功 -- 《《");
         const sendResults = {
             code: 0,
