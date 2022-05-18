@@ -265,7 +265,7 @@ module.exports = function (app, connection) {
         };
 
         (() => {
-            const newDate = $methods.someDay(100, "-", date);
+            const newDate = $methods.someDay(365, "-", date);
             const newDatas = [];
             let callback1 = (datas) => {
                 return new Promise(async (rl, rj) => {
@@ -433,18 +433,30 @@ module.exports = function (app, connection) {
         if (endDate) {
             conditions += ` and '${endDate}' >= d`;
         }
-        const queryRes = await SQL.querySQL({
-            connection,
-            name: `${SQL.base}_${type}`,
-            conditions,
+        // const queryRes = await SQL.querySQL({
+        //     connection,
+        //     name: `${SQL.base}_${type}`,
+        //     conditions,
+        // });
+        const queryRes = await API.get({
+            // 通用属性
+            type: "sohu",
+            // // sina属性
+            // page: 1,
+            // num: 100,
+            // sohu属性
+            codes: [code],
+            start: startDate.replace(/-/g, ""),
+            end: endDate.replace(/-/g, ""),
+            period: dwm,
         });
-        $model.getModel({ item: queryRes.data, date: startDate, dwm, inModels: [models] });
+        $model.getModel({ item: queryRes.data[0].data, date: startDate, dwm, inModels: [models] });
         console.log("》》 -- 查询queryOne成功 -- 《《");
         const sendResults = {
             code: 0,
             index: 0,
             message: "成功",
-            data: queryRes.data,
+            data: queryRes.data[0].data,
         };
         res.send(getSend({ result: sendResults }));
     });

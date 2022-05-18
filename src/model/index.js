@@ -44,6 +44,16 @@ function exportResults({ results, models, datas, dwm, coords, startDay, buyDate 
     }
 }
 
+function qs(datas, start, qs, num = 60) {
+    if (start - num < 0) return;
+    let lists = datas.slice(start - num < 0 ? 0 : start - num, start);
+    if (!lists.length) {
+        return;
+    }
+    let status = $methods.splitBlock(lists, qs);
+    return status.ok;
+}
+
 class AllsClass {
     constructor() {}
     isKlyh({ results, datas, start, dwm }) {
@@ -57,10 +67,11 @@ class AllsClass {
         if ($methods.shadowLineTooLong(d1)) return;
         if ($methods.YingYang(d2) !== 2) return;
         if ($methods.shadowLineTooLong(d2)) return;
-        let flag = $methods.xd({ datas, start });
-        if (!flag) return;
+
+        if (!qs(datas, start, "xd")) return;
+
         if (!($methods.abs(d0) * 2 < $methods.abs(d1))) return;
-        // $methods.splitBlock(datas.slice(start - 30 < 0 ? 0 : start - 30, start));
+
         // 阳线不能太大
         // if (!($methods.abs(d1) > $methods.abs(d2))) return;
         if (!(d0.o > d1.o)) return;
@@ -91,6 +102,8 @@ class AllsClass {
         if (!(d2.o > d1.o)) return;
         if (!(d3.c > d2.o)) return;
 
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isYjsd", d0.d, d3.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d0, buyDate: d3 });
     }
@@ -108,7 +121,8 @@ class AllsClass {
         if ($methods.YingYang(d6) !== 1) return;
         if ($methods.YingYang(d7) !== 2) return;
         // if (!slowDown(data, start)) return
-        if (!$methods.xd({ datas, start })) return;
+
+        if (!qs(datas, start, "xd")) return;
 
         let coords = ["isQx1", d1.d, d7.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d7 });
@@ -126,7 +140,9 @@ class AllsClass {
         if ($methods.YingYang(d5) !== 1) return;
         if ($methods.YingYang(d6) !== 1) return;
         if ($methods.YingYang(d7) !== 2) return;
-        if (!$methods.xd({ datas, start })) return;
+
+        if (!qs(datas, start, "xd")) return;
+
         // return [d1, d2, d3, d4, d5, d6, d7];
         let coords = ["isQx2", d1.d, d7.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d7 });
@@ -140,6 +156,9 @@ class AllsClass {
         if ($methods.YingYang(d3) !== 2) return;
         if ($methods.entity(d2) >= 0.02) return;
         if (!(d3.o > d2.c && d3.c > d2.o)) return;
+
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isFkwz", d2.d, d3.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d3 });
     }
@@ -157,6 +176,9 @@ class AllsClass {
         if (d1.v < d2.v) return;
         if (d2.v < d3.v) return;
         if (d3.v < d4.v) return;
+
+        if (!qs(datas, start, "xd-hp-sz")) return;
+
         let find = models.find((val, index) => {
             if (index >= 5) {
                 return $methods.YingYang(val) === 2 && val.c > d5.c;
@@ -174,6 +196,9 @@ class AllsClass {
         if ($methods.YingYang(d1) !== 1) return;
         if ($methods.YingYang(d2) !== 2) return;
         if (!(d2.h > d1.h && d2.l > d1.l && d2.c > d1.o)) return;
+
+        if (!qs(datas, start, "xd-hp-sz")) return;
+
         let coords = ["isCsfr", d1.d, d2.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d2 });
     }
@@ -191,6 +216,9 @@ class AllsClass {
         if (!($methods.zdf([d2, d3]) > 2)) return;
         if (!(d4.c > d3.o && d5.c > d3.o && d6.c > d3.o)) return;
         if (!(d2.v < d3.v && d4.v < d3.v && d5.v < d3.v && d6.v < d3.v)) return;
+
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isGsdn", d3.d, d6.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d3, buyDate: d6 });
     }
@@ -210,10 +238,9 @@ class AllsClass {
         if ($methods.YingYang(d7) !== 2) return;
         if (!($methods.entity(d6) < 0.0236)) return;
         if (!(d7.c > d2.c && d7.c > d3.c && d7.c > d4.c && d7.c > d5.c && d7.c > d6.o)) return;
-        // const isHp = $methods.hp({ datas, start, d7 });
-        // if (!isHp) return;
-        // let min = Math.min(models[0].l, models[1].l, models[2].l, models[3].l);
-        // if (!(isHp.min < min)) return;
+
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isDy", d2.d, d7.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d7 });
     }
@@ -226,6 +253,9 @@ class AllsClass {
         if (!($methods.zdf([d1, d2]) > 9.7)) return;
         if (!(d1.v < d2.v && d3.v < d2.v)) return;
         if (!(d3.c < d2.c && d4.c > d2.c)) return;
+
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isFhlz", d2.d, d4.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
     }
@@ -239,6 +269,9 @@ class AllsClass {
         if ($methods.YingYang(d4) !== 2) return;
         if (!(d4.c > d3.o)) return;
         if (!($methods.entity(d3) >= 0.03 || $methods.zdf([d2, d3]) > 9.7)) return;
+
+        if (!qs(datas, start, "hp")) return;
+
         let coords = ["isLzyy", d2.d, d4.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
     }
@@ -270,6 +303,9 @@ class AllsClass {
         // if (!(d4.v/1 > d3.v/1)) return
         let max = Math.min(d3.c, d3.o);
         if (!(d4.c > max)) return;
+
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isFlzt", d2.d, d4.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
     }
@@ -283,6 +319,9 @@ class AllsClass {
         let [result] = $methods.xiong(models);
         if (!result) return;
         if (!(val.c > result.o)) return;
+
+        if (!qs(datas, start, "xd")) return;
+
         let coords = ["isLahm", result.d, val.d];
         exportResults({ results, models, datas, dwm, coords, startDay: result, buyDate: val });
     }
@@ -297,10 +336,9 @@ class AllsClass {
         if (!($methods.YingYang(models[2]) === 1)) return;
         if (!($methods.YingYang(models[3]) === 2)) return;
         if (current.l < models[3].l) return;
-        const isHp = $methods.hp({ datas, start, current });
-        if (!isHp) return;
-        let min = Math.min(models[0].l, models[1].l, models[2].l, models[3].l);
-        if (!(isHp.min < min)) return;
+
+        if (!qs(datas, start, "hp")) return;
+
         let coords = ["isSbg3", models[0].d, current.d];
         exportResults({ results, models, datas, dwm, coords, startDay: models[0], buyDate: current });
     }
@@ -324,6 +362,9 @@ class AllsClass {
         let flag = before.every((level1) => level1.l > d3.l);
         let [result] = $methods.xiong(before);
         if (!(result && flag)) return;
+
+        if (!qs(datas, start, "xd")) return;
+
         // 止损, 小于第三天ying的l
         if ($methods.zs(models, start + 4, 10, d3.l)) return;
         let coords = ["isSlbw0", result.d, d4.d];
@@ -337,8 +378,8 @@ class AllsClass {
         let models = datas.slice(start, datas.length - 1);
         let [d1] = models;
         if (!d1) return;
-        if (d1.zd > 9.7) return;
-        // 突破箱体
+        if (!(d1.zd > 9.7)) return;
+        // 突破箱体;
         let current = datas[start];
         const index = models.findIndex((v, i) => {
             if (i < 5) return;
@@ -355,12 +396,9 @@ class AllsClass {
             });
         }
         if (flag) return;
-        // 是否横盘
-        const isHp = $methods.hp({ datas, start, current });
-        if (!isHp) return;
-        // 是否下跌
-        const isXd = $methods.xd({ datas, start: isHp.index });
-        if (!isXd) return;
+
+        if (!qs(datas, start, "xd-hp")) return;
+
         // 买点
         const buy = models[index];
         if (!buy) return;
@@ -388,6 +426,9 @@ class AllsClass {
         if (!(zfz > 4.5)) return;
         if (!($methods.entity(d3) > $methods.entity(d4) && $methods.entity(d4) < 0.0179)) return;
         if (!(d4.v < d3.v)) return;
+
+        if (!qs(datas, start, "xd-hp")) return;
+
         let coords = ["isSlbw3", d2.d, d4.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
     }
@@ -405,6 +446,9 @@ class AllsClass {
             return level1.h > d2.h && level1.v / 1 > d2.v / 1;
         });
         if (!find) return;
+
+        if (!qs(datas, start, "xd-hp-sz", 120)) return;
+
         let coords = ["isSlbw4", d2.d, find.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: find });
     }
@@ -418,17 +462,15 @@ class AllsClass {
         if (!($methods.zdf([d2, d3]) > 9.7)) return;
         if (!(d3.v < d2.v)) return;
 
+        if (!qs(datas, start, "sz")) return;
+
         let coords = ["isSlqs", d2.d, d3.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d3 });
     }
     isPjtl({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let current = datas[start];
-        if (current.d === "2018-07-06" && current.code === "603699") {
-            debugger;
-        }
-        let isXd = $methods.xd({ datas, start: start - 1 });
-        if (!isXd) return;
+
         // let lists = datas.slice(start, datas.length)
         let index = datas.findIndex((v, i) => {
             if (i > start + 40) {
@@ -442,6 +484,9 @@ class AllsClass {
         }
         let end = datas[index];
         if (!end) return;
+
+        if (!qs(datas, start, "xd-hp", 120)) return;
+
         let buy = datas[index + 1];
         if (!buy) return;
         let coords = ["isPjtl", current.d, end.d];
@@ -558,11 +603,11 @@ class AllsClass {
                 } else {
                     // 延伸60天，用作60均线的计算
                     const stretch = 60;
-                    let conditions = `code in (${item}) and dwm='${dwm}' and `;
+                    let conditions = `code in (${item}) and dwm='${dwm}' `;
                     if (start && end) {
-                        conditions += `d >= '${start}' and d < '${end}'`;
+                        conditions += ` and d >= '${start}' and d < '${end}'`;
                     } else {
-                        conditions += `d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
+                        // conditions += ` and d >= '${$methods.someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
                     }
                     const res = await SQL.getTables({
                         connection,
@@ -640,7 +685,7 @@ class AllsClass {
             // "isFkwz",
             "isCsfr",
             // "isLahm",
-            // "isSlbw0",
+            "isSlbw0",
             "isSlbw1",
             // "isSlbw2",
             "isSlbw3",

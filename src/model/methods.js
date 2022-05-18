@@ -60,7 +60,7 @@ class Methods {
         // todo ... 处理一字涨停板
         let [pre, current] = data;
         let result = ((current.c - pre.c) / pre.c) * 100;
-        return result.toFixed(2);
+        return result.toFixed(2) / 1;
     }
     zs(data, start, date, compare) {
         let datas = this.getModelLengthData(data, start, date);
@@ -99,11 +99,12 @@ class Methods {
         const arrs = datas.slice(index, start) || [];
         return arrs.reverse();
     }
-    splitBlock(datas) {
+    splitBlock(datas, names = "") {
         let index = 0,
             arrs = [],
             currentTime = "";
-        datas.forEach((v) => {
+        // 1. 将数据分成一周一个集合
+        datas.forEach((v, i) => {
             const date = new Date(v.d);
             const day = date.getDay();
             if (currentTime && currentTime + 1 * 24 * 60 * 60 * 1000 !== date.getTime()) {
@@ -114,15 +115,13 @@ class Methods {
             currentTime = date.getTime();
             let arr = arrs[index];
             if (arr) {
+                arr.list.push(v);
+                arr.end = i;
+                arr.endDate = v.d;
                 arr.max = Math.max(arr.max, v.c, v.o);
                 arr.min = Math.min(arr.min, v.c, v.o);
-                arr.list.push(v);
                 arr.maxPosition = arr.list.findIndex((d) => arr.max === Math.max(d.c, d.o));
                 arr.minPosition = arr.list.findIndex((d) => arr.min === Math.min(d.c, d.o));
-
-                let pre = arr.list[arr.maxPosition - arr.minPosition > 0 ? arr.minPosition : arr.maxPosition];
-                let current = arr.list[arr.maxPosition - arr.minPosition > 0 ? arr.maxPosition : arr.minPosition];
-                arr.zdf = this.zdf([pre, current]);
             } else {
                 arrs[index] = {
                     max: Math.max(v.c, v.o), // 还是用v.h更好
@@ -130,12 +129,24 @@ class Methods {
                     maxPosition: 0,
                     minPosition: 0,
                     list: [v],
+                    start: i,
+                    startDate: v.d,
+                    end: i,
+                    endDate: v.d,
                 };
             }
         });
-        arrs.forEach((v) => {
-            const { maxPosition, minPosition, zdf } = v;
+        // 2. 计算每个集合的上涨、下跌、横盘的幅度
+        const [a0, ...others] = arrs;
+        others.forEach((v, i) => {
+            let pre = others[i - 1];
+            if (i === 0) {
+                pre = a0;
+            }
+            v.preO = pre.list[pre.list.length - 1].o / 1;
+            v.zdf = this.zdf([pre.list[pre.list.length - 1], v.list[v.list.length - 1]]);
 
+            const { maxPosition, minPosition, zdf } = v;
             if (maxPosition > minPosition) {
                 v.status = 1;
             } else if (maxPosition < minPosition) {
@@ -144,10 +155,140 @@ class Methods {
                 v.status = 2;
             }
             if (v.status !== 2) {
-                zdf < 2 && (v.status = 2);
+                Math.abs(zdf) < 2 && (v.status = 2);
+            }
+            // v.status = zdf > 2 ? 1 : (zdf < -2 ? 3 : 2)
+        });
+        // 3. 将相连的集合，状态相同的整合成一个
+        const newArr = [];
+        others.forEach((v, i) => {
+            const arr = newArr.slice(-1)[0];
+            if (arr && arr.status === v.status) {
+                arr.list = arr.list.concat(v.list);
+                arr.end = arr.end + v.list.length;
+                arr.endDate = arr.list.slice(-1)[0].d;
+                arr.max = Math.max(...arr.list.map((v) => Math.max(v.c, v.o)));
+                arr.min = Math.min(...arr.list.map((v) => Math.min(v.c, v.o)));
+                arr.maxPosition = arr.list.findIndex((v) => Math.max(v.c, v.o) === arr.max);
+                arr.minPosition = arr.list.findIndex((v) => Math.min(v.c, v.o) === arr.min);
+                // 因为 这个条件里是合并,所以pre应该是上上一个
+                arr.zdf = this.zdf([(newArr[newArr.length - 2] || a0).list.slice(-1)[0], v.list.slice(-1)[0]]);
+            } else {
+                newArr.push(v);
             }
         });
-        return arrs;
+        let result = this.qsStatus(newArr, names);
+        result.ok = result.outNames === names;
+        return result;
+    }
+    /**
+     *
+     * @param {arrays} datas
+     * @param {string} name 'xd-hp'
+     */
+    qsStatus(datas, names) {
+        let obj = {
+                xd: [],
+                hp: [],
+                sz: [],
+                zdf: [],
+                point: [],
+            },
+            pre = "",
+            point = 0;
+        datas.forEach((v, i) => {
+            point = v.max;
+            if (!pre) {
+                pre = v;
+            } else {
+                let index = datas.slice(0, i).findIndex((d) => {
+                    let current = v.list.slice(-1)[0];
+                    let zdf = Math.abs((d.preO - current.c) / d.preO) * 100;
+                    return zdf < 2;
+                });
+                if (index > -1) {
+                    //  index - i 是横盘
+                    obj.point[index - 1] = v.max;
+                    obj.hp.push({
+                        start: index,
+                        end: i,
+                        status: "hp",
+                    });
+                } else {
+                    // 中间这一段是v型底\横盘还是圆弧底等
+                    let zdf = obj.zdf.reduce((x, y) => x + y, 0);
+                    if (zdf < 0) {
+                        point = v.min;
+                        obj.xd.push({
+                            start: 0,
+                            end: i,
+                            status: "xd",
+                        });
+                    } else {
+                        obj.sz.push({
+                            start: 0,
+                            end: i,
+                            status: "sz",
+                        });
+                    }
+                }
+            }
+            obj.point.push(point);
+            obj.zdf.push(v.zdf);
+        });
+        // 合并横盘
+        let preHps = {
+            pre: "",
+            list: [],
+        };
+        obj.hp.forEach((v) => {
+            if (!preHps.pre) {
+                preHps.pre = v;
+                preHps.list = [v];
+            } else {
+                if (preHps.pre.start <= v.start && v.start <= preHps.pre.end) {
+                    preHps.pre = { start: preHps.pre.start, end: v.end };
+
+                    preHps.list[preHps.list.length - 1] = preHps.pre;
+                } else {
+                    preHps.pre = v;
+                    preHps.list.push(v);
+                }
+            }
+        });
+        // 判断是否和传入的条件一致，例： 'xd-hp'下跌后的横盘
+        let lists1 = [].concat(obj.sz.slice(-1), obj.hp.slice(-1), obj.xd.slice(-1)).sort((x, y) => x.end - y.end);
+        let result = {
+            inNames: names,
+            qs: lists1.map((v) => v.status),
+        };
+        let arrs1 = names.split("-");
+        result.outNames = arrs1
+            .map((v, i) => {
+                if (!v) return;
+                let types = lists1.slice(`-${arrs1.length}`).map((d) => d.status);
+                if (v === types[i]) {
+                    return `${v}`;
+                }
+            })
+            .join("-");
+
+        // 判断整体趋势
+        let zdf = ((datas.slice(-1)[0].list.slice(-1)[0].c - datas[0].preO) / datas[0].preO) * 100;
+        if (zdf < 2) {
+            // 下跌
+            result.status = "xd";
+            // 是否N
+        } else if (zdf > 2) {
+            // 上涨
+            result.status = "zs";
+            // 是否N
+        } else {
+            // 横盘
+            result.status = "hp";
+            // v型、弧形、波浪
+        }
+        return result;
     }
     hp({ datas, start, current }) {
         const max = current.c;
