@@ -27,13 +27,14 @@ module.exports = function (app, connection) {
             let fn = async () => {
                 let item = keys[++index];
                 if (item) {
-                    let conditions = `dwm=${dwm}`;
+                    let conditions = `dwm='${dwm}'`;
                     // if (start) {
                     //     conditions += ` and start >= '${start}' `;
                     // }
                     // if (end) {
                     //     conditions += ` and end <= '${end} `;
                     // }
+                    console.log(`》 clear - ${item}`);
                     await SQL.deleteSQL({
                         connection,
                         name: `${SQL.base}_${item}`,
