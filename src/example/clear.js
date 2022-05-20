@@ -7,7 +7,7 @@ const { modelsCode, otherTableCodes } = require("../utils/code");
 module.exports = function (app, connection) {
     app.get("/api/clear", async (req, res) => {
         console.log("-------------开始执行 /api/clear---------------");
-        let { type = "models" } = req.query;
+        let { type = "models", dwm } = req.query;
         let keys = Object.keys(modelsCode);
         switch (type) {
             case "all":
@@ -21,6 +21,31 @@ module.exports = function (app, connection) {
                     otherTableCodes
                 );
                 break;
+        }
+        if (dwm) {
+            let index = -1;
+            let fn = async () => {
+                let item = keys[++index];
+                if (item) {
+                    let conditions = `dwm=${dwm}`;
+                    // if (start) {
+                    //     conditions += ` and start >= '${start}' `;
+                    // }
+                    // if (end) {
+                    //     conditions += ` and end <= '${end} `;
+                    // }
+                    await SQL.deleteSQL({
+                        connection,
+                        name: `${SQL.base}_${item}`,
+                        conditions,
+                    });
+                    fn();
+                } else {
+                    res.send("ok");
+                }
+            };
+            fn();
+            return;
         }
         let sql = `DROP TABLE ${keys.map((v) => `${SQL.base}_${v}`)}`;
         connection.query(sql, (err, result) => {

@@ -657,9 +657,13 @@ class AllsClass {
                 }
             };
             // 先将表清空
+            let url = "http://localhost:3334/api/clear";
+            if (query.mail !== "init") {
+                url += `?dwm=${dwm}`;
+            }
             request(
                 {
-                    url: "http://localhost:3334/api/clear",
+                    url,
                     method: "GET",
                     headers: {
                         "Content-Type": "text/json",
