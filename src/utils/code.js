@@ -22,6 +22,7 @@ const modelsCode = {
     isSlqs: 7,
     isSbg3: 7,
     isG8M1: 7,
+    isGsbf2: 7,
     isYylm: 25,
     isPjtl: 90,
 };

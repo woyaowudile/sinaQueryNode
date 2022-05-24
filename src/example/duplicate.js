@@ -3,8 +3,9 @@ const $methods = require("../model/methods");
 
 module.exports = function (app, connection) {
     app.get("/api/duplicate/remove", async (req, res) => {
+        let { query } = req;
         console.log(`-------------开始执行 /api/duplicate/remove---------------`);
-        const days = $methods.someDay(6);
+        const days = query.start || $methods.someDay(query.days || 0);
 
         const getLists = await SQL.querySQL({
             connection,
