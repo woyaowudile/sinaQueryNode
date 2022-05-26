@@ -190,7 +190,8 @@ function setTables({ connection, name, code, type, dwm }) {
 //     })
 // }
 function deleteEle(data) {
-    let arr = ["zf", "ma10", "ma20", "ma60"],
+    let arr = [],
+        // let arr = ["zf", "ma10", "ma20", "ma60"],
         result = {
             keys: [],
             values: [],

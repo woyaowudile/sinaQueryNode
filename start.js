@@ -19,7 +19,7 @@ app.use(allowCrossDomain);
 
 app.listen(port, async () => {
     // 1. 链接数据库， 并开启定时任务
-    let connection = await SQL.handleDisconnection([nodeSchedule]);
+    let connection = await SQL.handleDisconnection();
     global.customConnection = connection;
     // 2. 开放接口
     runApi(app, connection);

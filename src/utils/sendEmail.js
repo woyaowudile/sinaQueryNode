@@ -27,6 +27,7 @@ module.exports = {
         };
         transport.sendMail(mailOpts, (err, res) => {
             if (err) {
+                console.log("email 发送失败" + new Date().toLocaleString());
                 console.log(err);
             } else {
                 console.log("email 发送成功" + new Date().toLocaleString());

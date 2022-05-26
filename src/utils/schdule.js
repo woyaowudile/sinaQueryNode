@@ -1,11 +1,10 @@
 /** @format */
 
 const API = require("../api");
-const request = require("request");
 const schdule = require("node-schedule");
 
 const { sendMail } = require("./sendEmail");
-const { someDay } = require("../model/methods");
+const { someDay, getRequest } = require("../model/methods");
 
 module.exports = {
     nodeSchedule: async (connection) => {
@@ -34,6 +33,7 @@ module.exports = {
                 second: [0],
             },
             async () => {
+                console.log("------ 定时器： 开启每日更新");
                 const date = new Date();
                 const res = await API.getHolidays(date);
                 if (res) {
@@ -43,18 +43,10 @@ module.exports = {
                 // 每周的一二三四五 的 下午5：30
                 connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                     if (err) {
+                        console.log("------ 每日更新：失败");
                     } else {
                         sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`, "（开始）");
-                        request(
-                            {
-                                url: "http://localhost:3334/api/update?dwm=d",
-                                method: "GET",
-                                headers: {
-                                    "Content-Type": "text/json",
-                                },
-                            },
-                            (error, response, body) => {}
-                        );
+                        await getRequest("http://localhost:3334/api/update?dwm=d");
                     }
                 });
             }
@@ -67,10 +59,12 @@ module.exports = {
                 second: [0],
             },
             async () => {
-                let day = someDay(1);
+                console.log("------ 定时器： 开启每日推送");
+                let day = someDay();
                 // 每周的一二三四五 的 上午5：30
                 connection.query(`SELECT * FROM xxxx_checked WHERE buy_date = '${day}'`, async (err, result) => {
                     if (err) {
+                        console.log("------ 每日推送：失败");
                     } else {
                         if (result.length) {
                             let datas = result.map((v) => ({
@@ -103,40 +97,26 @@ module.exports = {
             }
         );
         schdule.scheduleJob("00 30 4 * * 6", () => {
+            console.log("------ 定时器： 开启每周推送");
             // 每周六 的4.30 更新
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'w'`, async (err, result) => {
                 if (err) {
+                    console.log("------ 每周推送：失败");
                 } else {
                     sendMail(`这周（${new Date().toLocaleString()}）的任务开始了`, "（开始）");
-                    request(
-                        {
-                            url: "http://localhost:3334/api/update?dwm=w",
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "text/json",
-                            },
-                        },
-                        (error, response, body) => {}
-                    );
+                    await getRequest("http://localhost:3334/api/update?dwm=w");
                 }
             });
         });
         schdule.scheduleJob("00 30 1 1 * *", () => {
+            console.log("------ 定时器： 开启每月推送");
             // 每月 1 号的 1.30 更新
             connection.query(`DELETE FROM xxxx_today WHERE dwm = 'm'`, async (err, result) => {
                 if (err) {
+                    console.log("------ 每月推送：失败");
                 } else {
                     sendMail(`本月（${new Date().toLocaleString()}）的任务开始了`, "（开始）");
-                    request(
-                        {
-                            url: "http://localhost:3334/api/update?dwm=m",
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "text/json",
-                            },
-                        },
-                        (error, response, body) => {}
-                    );
+                    await getRequest("http://localhost:3334/api/update?dwm=m");
                 }
             });
         });

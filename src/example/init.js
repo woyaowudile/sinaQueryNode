@@ -139,7 +139,7 @@ module.exports = function (app, connection) {
                     fn();
                 }, 200);
             } else {
-                await $methods.duplicateRemove();
+                await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
                 await $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);

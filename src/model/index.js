@@ -3,7 +3,6 @@
 const { MA } = require("../api/methods");
 const SQL = require("../sql");
 const $methods = require("./methods");
-const request = require("request");
 const { sendMail } = require("../utils/sendEmail");
 
 let count = 0;
@@ -44,13 +43,13 @@ function exportResults({ results, models, datas, dwm, coords, startDay, buyDate 
     }
 }
 
-function qs(datas, start, qs, num = 60) {
+function qs(datas, start, qs, num = 60, dwm = "d") {
     if (start - num < 0) return;
     let lists = datas.slice(start - num < 0 ? 0 : start - num, start);
     if (!lists.length) {
         return;
     }
-    let status = $methods.splitBlock(lists, qs);
+    let status = $methods.splitBlock(lists, qs, dwm);
     return status.ok;
 }
 
@@ -492,7 +491,7 @@ class AllsClass {
         let coords = ["isPjtl", current.d, end.d];
         exportResults({ results, models: [end], datas, dwm, coords, startDay: current, buyDate: buy });
     }
-    isG8M1({ results, datas, start, dwm }) {
+    isGsbf1({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
         if (start < 60) return;
         // 10\60
@@ -502,7 +501,24 @@ class AllsClass {
         let current = datas[start - 1];
         if ($methods.YingYang(current) !== 2) return;
         if (!(current.c > ma60)) return;
-        let coords = ["isG8M1", current.d];
+        let coords = ["isGsbf1", current.d];
+        exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: current });
+    }
+
+    isGsbf2({ results, datas, start, dwm }) {
+        if (dwm !== "w") return;
+        if (start < 60) return;
+        let current = datas[start]; // // 10\60
+        if (!(current.d && $methods.YingYang(current) === 2)) return;
+
+        if (current.code === "000625" && current.d === "2021-04-16") {
+            debugger;
+        }
+
+        if (!qs(datas, start, "sz-xd", 90, dwm)) return;
+        let isArrrange = $methods.arrange(datas, start - 90, [10, 20, 60]);
+        if (!isArrrange) return;
+        let coords = ["isGsbf2", current.d];
         exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: current });
     }
     isYylm({ results, datas, start, dwm }) {
@@ -661,21 +677,8 @@ class AllsClass {
             if (query.mail !== "init") {
                 url += `?dwm=${dwm}`;
             }
-            request(
-                {
-                    url,
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "text/json",
-                    },
-                },
-                (error, response, body) => {
-                    if (!error) {
-                        fn();
-                    }
-                }
-            );
-            // fn();
+            await $methods.getRequest(url);
+            fn();
         });
     }
     getModel({ item: datas, date, dwm, inModels }) {
@@ -703,6 +706,7 @@ class AllsClass {
             "isLzyy",
             "isFlzt",
             "isSbg3",
+            "isGsbf2",
             // 'isG8M1',
             // 'isYylm',
         ].filter((v) => (inModels ? inModels.includes(v) : true));

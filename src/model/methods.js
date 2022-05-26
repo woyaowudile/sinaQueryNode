@@ -94,25 +94,64 @@ class Methods {
             };
         }
     }
+    /**
+     * 均线多头排列
+     * @param {array} datas [{c,o,h,l...}]
+     * @param {number} start 哪一天
+     * @param {array} nlist [10,20,60...] 均线
+     * @returns Boolean
+     */
+    arrange(datas, start, nlist) {
+        let list = {};
+        nlist.forEach((v) => {
+            list[v] = datas.map((d, i) => {
+                return MA(datas, start + i, v);
+            });
+        });
+        return nlist.every((v) => {
+            let fIndex = nlist
+                .map((d) => {
+                    if (d === v) return 1;
+                    return list[v].every((item, index) => (list[v] < list[d] ? item <= list[d][index] : item >= list[d][index]));
+                })
+                .findIndex((v) => !v);
+            return fIndex === -1;
+        });
+    }
     reserveFn(datas, start, num) {
         const index = start - num > 0 ? start - num : 0;
         const arrs = datas.slice(index, start) || [];
         return arrs.reverse();
     }
-    splitBlock(datas, names = "") {
+    splitBlock(datas, names = "", dwm = "d") {
         let index = 0,
             arrs = [],
             currentTime = "";
         // 1. 将数据分成一周一个集合
         datas.forEach((v, i) => {
             const date = new Date(v.d);
-            const day = date.getDay();
-            if (currentTime && currentTime + 1 * 24 * 60 * 60 * 1000 !== date.getTime()) {
+            let day = "";
+            let time = 1 * 24 * 60 * 60 * 1000;
+            switch (dwm) {
+                case "d":
+                    time = 1 * 24 * 60 * 60 * 1000;
+                    day = date.getTime();
+                    break;
+                case "w":
+                    time = 0;
+                    day = date.getMonth() + 1;
+                    break;
+                case "m":
+                    time = 0;
+                    day = date.getFullYear();
+                    break;
+            }
+            if (currentTime && currentTime + time !== day) {
                 // 如果不是相连的日期，表示
                 index++;
             }
             // 处理结果
-            currentTime = date.getTime();
+            currentTime = day;
             let arr = arrs[index];
             if (arr) {
                 arr.list.push(v);
@@ -187,77 +226,94 @@ class Methods {
      * @param {string} name 'xd-hp'
      */
     qsStatus(datas, names) {
-        let obj = {
-                xd: [],
-                hp: [],
-                sz: [],
-                zdf: [],
-                point: [],
-            },
-            pre = "",
-            point = 0;
-        datas.forEach((v, i) => {
-            point = v.max;
-            if (!pre) {
-                pre = v;
-            } else {
-                let index = datas.slice(0, i).findIndex((d) => {
-                    let current = v.list.slice(-1)[0];
-                    let zdf = Math.abs((d.preO - current.c) / d.preO) * 100;
-                    return zdf < 2;
-                });
-                if (index > -1) {
-                    //  index - i 是横盘
-                    obj.point[index - 1] = v.max;
-                    obj.hp.push({
-                        start: index,
-                        end: i,
-                        status: "hp",
-                    });
+        let divideLine = datas.findIndex((v) => v.max === Math.max(...datas.map((d) => d.max)));
+        if (divideLine === -1) return;
+        let beforeDatas = datas.slice(0, divideLine);
+        let afterDatas = datas.slice(divideLine, datas.length);
+        let fn = function (useDatas, offset = 0) {
+            let obj = {
+                    xd: [],
+                    hp: [],
+                    sz: [],
+                    zdf: [],
+                    point: [],
+                },
+                pre = "",
+                point = 0;
+            useDatas.forEach((v, i) => {
+                point = v.max;
+                if (!pre) {
+                    pre = v;
                 } else {
-                    // 中间这一段是v型底\横盘还是圆弧底等
-                    let zdf = obj.zdf.reduce((x, y) => x + y, 0);
-                    if (zdf < 0) {
-                        point = v.min;
-                        obj.xd.push({
-                            start: 0,
-                            end: i,
-                            status: "xd",
+                    let index = useDatas.slice(0, i).findIndex((d) => {
+                        let current = v.list.slice(-1)[0];
+                        let zdf = Math.abs((d.preO - current.c) / d.preO) * 100;
+                        return zdf < 2;
+                    });
+                    if (index > -1) {
+                        //  index - i 是横盘
+                        obj.point[index - 1] = v.max;
+                        obj.hp.push({
+                            start: index + offset,
+                            end: i + offset,
+                            status: "hp",
                         });
                     } else {
-                        obj.sz.push({
-                            start: 0,
-                            end: i,
-                            status: "sz",
-                        });
+                        // 中间这一段是v型底\横盘还是圆弧底等
+                        let zdf = obj.zdf.reduce((x, y) => x + y, 0);
+                        if (zdf < 0) {
+                            point = v.min;
+                            obj.xd.push({
+                                start: offset,
+                                end: i + offset,
+                                status: "xd",
+                            });
+                        } else {
+                            obj.sz.push({
+                                start: offset,
+                                end: i + offset,
+                                status: "sz",
+                            });
+                        }
                     }
                 }
-            }
-            obj.point.push(point);
-            obj.zdf.push(v.zdf);
-        });
-        // 合并横盘
-        let preHps = {
-            pre: "",
-            list: [],
+                obj.point.push(point);
+                obj.zdf.push(v.zdf);
+            });
+            return obj;
         };
-        obj.hp.forEach((v) => {
-            if (!preHps.pre) {
-                preHps.pre = v;
-                preHps.list = [v];
-            } else {
-                if (preHps.pre.start <= v.start && v.start <= preHps.pre.end) {
-                    preHps.pre = { start: preHps.pre.start, end: v.end };
+        let objBefore = fn(beforeDatas);
+        let objAfter = fn(afterDatas, divideLine);
 
-                    preHps.list[preHps.list.length - 1] = preHps.pre;
+        // 3.1 例如：hp: [{1,2}, {1,4}] 合并成 [{1,4}]
+        let concatQs = function (list) {
+            let qs = {
+                pre: {},
+                list: [],
+            };
+            list.forEach((v, i) => {
+                let index = qs.list.length;
+                if (qs.pre.start <= v.start && v.start <= qs.pre.end) {
+                    qs.pre = { start: qs.pre.start, end: v.end, status: v.status };
+                    --index;
                 } else {
-                    preHps.pre = v;
-                    preHps.list.push(v);
+                    qs.pre = v;
                 }
-            }
-        });
+                qs.list[index] = qs.pre;
+            });
+            return qs.list;
+        };
+
+        let newObj = {
+            xd: concatQs([].concat(objBefore.xd, objAfter.xd)),
+            sz: concatQs([].concat(objBefore.sz, objAfter.sz)),
+            hp: concatQs([].concat(objBefore.hp, objAfter.hp)),
+        };
+        /* **************************打补丁专用位置************************* */
+        /* **************************打补丁专用位置************************* */
+
         // 判断是否和传入的条件一致，例： 'xd-hp'下跌后的横盘
-        let lists1 = [].concat(obj.sz.slice(-1), obj.hp.slice(-1), obj.xd.slice(-1)).sort((x, y) => x.end - y.end);
+        let lists1 = [].concat(newObj.sz.slice(-1), newObj.hp.slice(-1), newObj.xd.slice(-1)).sort((x, y) => x.end - y.end);
         let result = {
             inNames: names,
             qs: lists1.map((v) => v.status),
@@ -584,18 +640,26 @@ class Methods {
             rl(sheets);
         });
     }
-    duplicateRemove() {
+    getRequest(url, callback, { method = "GET", others } = {}) {
         return new Promise((rl, rj) => {
             request(
                 {
-                    url: "http://localhost:3334/api/duplicate/remove",
-                    method: "GET",
+                    url,
+                    method,
                     headers: {
                         "Content-Type": "text/json",
+                        ...others,
                     },
                 },
-                (error, response, body) => {
-                    rl(body);
+                async (error, response, body) => {
+                    if (!error) {
+                        if (callback) {
+                            await callback(body);
+                        }
+                        rl(body);
+                    } else {
+                        rj(error);
+                    }
                 }
             );
         });

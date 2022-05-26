@@ -65,7 +65,7 @@ function getList(connection) {
     });
 }
 
-function addTables(connection) {
+function addTables(connection, name = "") {
     return new Promise(async (rl, rj) => {
         console.log(">>> distinct 表(ig502_list)");
         let q_res = await SQL.querySQL({
@@ -76,34 +76,25 @@ function addTables(connection) {
         console.log(`> ${q_res.message}`);
 
         if (q_res.code === "rl") {
-            console.log(`>>>>>>>>>>>> 共${q_res.data.length}条 准备创建新表中...`);
-            let arr = [
-                "id int auto_increment PRIMARY KEY",
-                "h varchar(32)",
-                "l varchar(32)",
-                "o varchar(32)",
-                "c varchar(32)",
-                "v varchar(32)",
+            console.log(`>>>>>>>>>>>> 共${q_res.data.length}条 准备创建_${name}_新表中...`);
+            let arr1 = ["h varchar(32)", "l varchar(32)", "o varchar(32)", "c varchar(32)", "v varchar(32)", "type varchar(10)", "zd varchar(10)"];
+            let arr2 = [
                 "e varchar(32)",
                 "zde varchar(32)",
-                // 'zf varchar(10)',
+                "zf varchar(10)",
                 "hs varchar(10)",
-                "zd varchar(10)",
                 "ma10 varchar(16)",
                 "ma20 varchar(16)",
                 "ma60 varchar(16)",
-                "d varchar(32)",
-                "code varchar(10)",
-                "type varchar(10)",
-                "dwm varchar(10)",
             ];
+            let arr = ["id int auto_increment PRIMARY KEY", "d varchar(32)", "code varchar(10)", "dwm varchar(10)", ...(name ? arr2 : arr1)];
             let count = -1;
             let fn = async function () {
                 let item = q_res.data[++count];
                 if (item) {
                     await createTables({
                         connection,
-                        name: `${SQL.base}_${item.type}`,
+                        name: name ? `${SQL.base}_${item.type}_${name}` : `${SQL.base}_${item.type}`,
                         createConditions: arr.join(","),
                         count: `${count + 1}/${q_res.data.length}`,
                     });
@@ -203,6 +194,7 @@ module.exports = function (app, connection) {
         await getList(connection);
 
         await addTables(connection);
+        await addTables(connection, "sub");
 
         await addOtherTable(connection);
 
