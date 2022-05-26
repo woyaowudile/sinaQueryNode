@@ -189,43 +189,59 @@ function setTables({ connection, name, code, type, dwm }) {
 //         })
 //     })
 // }
-function deleteEle(data) {
-    let arr = [],
-        // let arr = ["zf", "ma10", "ma20", "ma60"],
-        result = {
-            keys: [],
-            values: [],
-        };
-    Object.keys(data).forEach((v) => {
-        if (!arr.includes(v)) {
-            result.keys.push(v);
-            result.values.push(data[v]);
-        }
+
+// 包含哪些元素
+function omitEles(datas, { flag, dwm, type } = {}) {
+    // let arr = ["zf", "ma10", "ma20", "ma60"],
+    let arr1 = ["h", "l", "o", "c", "v", "type", "zd"];
+    let arr2 = ["e", "zde", "zf", "hs", "ma10", "ma20", "ma60"];
+    let arr = ["d", "code", "dwm", ...(flag ? arr2 : arr1)];
+
+    let keys = [],
+        values = [];
+    datas.forEach((data, index) => {
+        Object.keys(data).forEach((v) => {
+            if (arr.includes(v)) {
+                if (index === 0) {
+                    keys[index] ? keys[index].push(v) : (keys[index] = flag ? ["dwm"] : ["dwm", "type"]);
+                }
+                // 注意sub表不需要type
+                values[index] ? values[index].push(data[v]) : (values[index] = flag ? [dwm] : [dwm, type]);
+            }
+        });
     });
-    return result;
+    values = values.map((v) => `(${v.map((d) => `'${d}'`)})`);
+    return { keys, values };
 }
 function save({ connection, item, dwm }) {
     return new Promise(async (rl, rj) => {
         let { code, data, type } = item;
 
-        let keys = `${deleteEle(data[0]).keys},type,dwm`;
-        let values = data.map((level1) => {
-            return `(${deleteEle(level1).values.map((v) => `'${v}'`)},${type},'${dwm}')`;
-        });
+        let arrs = ["", "sub"],
+            index = -1;
+        let fn = async function () {
+            let it = arrs[++index];
+            if (it || it === "") {
+                const { values, keys } = omitEles(data, { dwm, type, flag: it });
 
-        await insertSQL({
-            connection,
-            name: `${base}_${type}(${keys})`,
-            values: `${values}`,
-        })
-            .then((d) => {
-                console.log(`>> save ${code} ${d.message}`);
+                await insertSQL({
+                    connection,
+                    name: it ? `${base}_${type}_${it}(${keys})` : `${base}_${type}(${keys})`,
+                    values: `${values}`,
+                })
+                    .then((d) => {
+                        console.log(`>> save ${code} ${d.message}——${it}——`);
+                    })
+                    .catch((err) => {
+                        console.log(`>> save ${code} ${err.message}——${it}——`);
+                        rj();
+                    });
+                fn();
+            } else {
                 rl();
-            })
-            .catch((err) => {
-                console.log(`>> save ${code} ${err.message}`);
-                rj();
-            });
+            }
+        };
+        fn();
     });
 }
 
