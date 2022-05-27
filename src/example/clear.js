@@ -58,6 +58,8 @@ module.exports = function (app, connection) {
             }
             console.log(`》》-- 执行完成 /api/clear：${type} --《《`);
             await getRequest("http://localhost:3334/api/createNewTables");
+
+            res.send("ok");
         });
     });
 };

@@ -203,10 +203,10 @@ function omitEles(datas, { flag, dwm, type } = {}) {
         Object.keys(data).forEach((v) => {
             if (arr.includes(v)) {
                 if (index === 0) {
-                    keys[index] ? keys[index].push(v) : (keys[index] = flag ? ["dwm"] : ["dwm", "type"]);
+                    keys[index] ? keys[index].push(v) : (keys[index] = flag ? ["dwm", v] : ["dwm", "type", v]);
                 }
                 // 注意sub表不需要type
-                values[index] ? values[index].push(data[v]) : (values[index] = flag ? [dwm] : [dwm, type]);
+                values[index] ? values[index].push(data[v]) : (values[index] = flag ? [dwm, data[v]] : [dwm, type, data[v]]);
             }
         });
     });
