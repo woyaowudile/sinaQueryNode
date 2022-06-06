@@ -86,7 +86,6 @@ module.exports = function (app, connection) {
         let count = 0,
             num = 1;
         let fn = async function () {
-            let start = new Date().getTime();
             let item = unused.slice(count, (count += num));
             if (item.length) {
                 let codes = item.map((v) => v.code);
@@ -125,7 +124,6 @@ module.exports = function (app, connection) {
                     //     })
                     // } else {
                     await SQL.save({ connection, item: level1, dwm });
-                    let end1 = new Date().getTime();
                     await SQL.setTables({
                         connection,
                         code,
@@ -134,9 +132,7 @@ module.exports = function (app, connection) {
                         dwm,
                         jys: item[0].jys,
                     });
-                    let end2 = new Date().getTime();
                     // }
-                    console.log(end1 - start, end2 - start);
                     res.splice(-1);
                 }
 
@@ -146,23 +142,11 @@ module.exports = function (app, connection) {
                 }, 10);
             } else {
                 await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
-                // await $model.quertBefore({ dwm, mail: "init" }, connection);
+                await $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }
         };
         fn();
-
-        // const ret = await API.get({
-        //     // 通用属性
-        //     type: 'sina',
-        //     // sina属性
-        //     page: 1,
-        //     num: 100,
-        //     // sohu属性
-        //     codes: ['601999'],
-        //     start: '20210825',
-        //     end: '20210925'
-        // })
     });
 };

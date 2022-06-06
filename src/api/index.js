@@ -127,7 +127,7 @@ function callback(url, params) {
                                     let hp = klines.map((v) => v.split(","));
                                     let preClose = 0;
                                     let [last] = hp.slice(-1);
-                                    let lastTime = new Date(last[0]).getTime();
+                                    let lastTime = last ? new Date(last[0]).getTime() : 0;
                                     let sub = 1000 * 3600 * 24 * 10; // 如果相差10天以内就不是下市
                                     if (endTime ? lastTime + sub >= endTime : true) {
                                         arrs.push({
@@ -160,7 +160,7 @@ function callback(url, params) {
                                             }),
                                         });
                                     } else {
-                                        result.err = `好像下市了：${last[0]}`;
+                                        result.err = last ? `好像下市了：${last[0]}` : `好像没有这个股票：${code}`;
                                     }
                                 } else {
                                     result.error = { message: "data is null" };
