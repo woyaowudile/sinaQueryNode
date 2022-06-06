@@ -507,7 +507,7 @@ class Methods {
                     const [name] = d;
                     // 每个模型对应的 比较时间不同
                     const days = modelsCode[name];
-                    const flag = this.compareTime(this.someDay(days), d[1]);
+                    const flag = this.compareTime(this.someDay(days), d[2]);
                     const data = [v.code, d[1], d[2], dwm];
                     if (flag) {
                         counts[name] = (counts[name] || 0) + 1;

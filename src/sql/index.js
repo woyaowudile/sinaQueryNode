@@ -220,6 +220,7 @@ function omitEles(datas, { its, dwm, type } = {}) {
                         value = dateId;
                         break;
                     case "zf":
+                    case "zd":
                         value = data[v].slice(0, 8);
                         break;
                     case "dwm":
