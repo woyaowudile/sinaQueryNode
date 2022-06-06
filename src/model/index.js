@@ -148,7 +148,7 @@ class AllsClass {
     }
     isFkwz({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
-        let models = $methods.getModelLengthData(datas, start, 3);
+        let models = $methods.getModelLengthData(datas, start - 1, 2);
         let [d1, d2, d3] = models;
         if (!d1) return;
         if ($methods.YingYang(d2) !== 1) return;
@@ -327,16 +327,17 @@ class AllsClass {
     isSbg3({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         if (!(start > 100)) return;
-        let models = datas.slice(start - 3, start + 1);
+        let models = datas.slice(start - 4, start + 1);
         if (!models[0]) return;
         let current = datas[start];
-        if (!($methods.YingYang(models[0]) === 1)) return;
+        if (!($methods.YingYang(models[0]) === 2)) return;
         if (!($methods.YingYang(models[1]) === 1)) return;
         if (!($methods.YingYang(models[2]) === 1)) return;
-        if (!($methods.YingYang(models[3]) === 2)) return;
+        if (!($methods.YingYang(models[3]) === 1)) return;
+        if (!($methods.YingYang(models[4]) === 2)) return;
         if (current.l < models[3].l) return;
 
-        if (!qs(datas, start, "hp")) return;
+        if (!qs(datas, start, "xd-hp")) return;
 
         let coords = ["isSbg3", models[0].d, current.d];
         exportResults({ results, models, datas, dwm, coords, startDay: models[0], buyDate: current });
@@ -396,7 +397,7 @@ class AllsClass {
         }
         if (flag) return;
 
-        if (!qs(datas, start, "xd-hp")) return;
+        if (!qs(datas, start, "xd-hp", 30)) return;
 
         // 买点
         const buy = models[index];
@@ -681,38 +682,43 @@ class AllsClass {
             fn();
         });
     }
+    code2model(query, connection) {
+        return new Promise((rl, rj) => {
+            const { usedres, dwm } = query;
+        });
+    }
     getModel({ item: datas, date, dwm, inModels }) {
         let coords = [],
             results = [];
         let current = new Date(date).getTime();
         let models = [
-            "isKlyh",
-            "isQx1",
-            "isQx2",
-            // "isFkwz",
-            "isCsfr",
-            // "isLahm",
-            "isSlbw0",
-            "isSlbw1",
-            // "isSlbw2",
-            "isSlbw3",
-            // "isSlbw4",
-            "isDy",
-            // "isPjtl",
-            "isYjsd",
-            "isYydl",
-            "isGsdn",
-            "isFhlz",
-            "isLzyy",
-            "isFlzt",
-            "isSbg3",
-            "isGsbf2",
-            // 'isG8M1',
-            // 'isYylm',
-        ].filter((v) => (inModels ? inModels.includes(v) : true));
+            { name: "isKlyh", status: 1 },
+            { name: "isYjsd", status: 2 },
+            { name: "isQx1", status: 1 },
+            { name: "isQx2", status: 1 },
+            // { name: "isFkwz", status: 1 },
+            { name: "isCsfr", status: 1 },
+            // { name: "isLahm", status: 2 },
+            { name: "isSlbw0", status: 1 },
+            { name: "isSlbw1", zd: true },
+            // { name: "isSlbw2", zd: true},
+            { name: "isSlbw3", zd: true },
+            // { name: "isSlbw4", status: 2 },
+            { name: "isDy", status: 2 },
+            // { name: "isPjtl", status: 3 },
+            { name: "isYydl", status: 2 },
+            { name: "isGsdn", status: 3 },
+            { name: "isFhlz", zd: true },
+            { name: "isLzyy", zd: true },
+            { name: "isFlzt", zd: true },
+            { name: "isSbg3", status: 2 },
+            { name: "isGsbf2", status: 2 },
+            // { name: 'isG8M1', status: 1 },
+            // { name: 'isYylm', status: 3 },
+        ].filter((v) => (inModels ? inModels.includes(v.name) : true));
 
         datas.forEach((level1, index1) => {
-            let { zd, d } = level1;
+            let { zd, d, code } = level1;
 
             let now = new Date(d).getTime();
             if (now < current) return;
@@ -724,7 +730,21 @@ class AllsClass {
                 results,
             };
 
-            models.forEach((v) => this[v](params));
+            switch ($methods.YingYang(level1)) {
+                case 1:
+                    models.forEach((v) => v.status === 1 && this[v.name](params));
+                    break;
+                case 2:
+                    if (zd > 9.5) {
+                        models.forEach((v) => v.zd && this[v.name](params));
+                    } else {
+                        models.forEach((v) => v.status === 2 && this[v.name](params));
+                    }
+                    break;
+                default:
+                    models.forEach((v) => v.status === 3 && this[v.name](params));
+                    break;
+            }
         });
         // let results = {
         //     coords,

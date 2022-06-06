@@ -34,8 +34,11 @@ function createTableSQL({ connection, name, conditions, callback }) {
     return new Promise((rl, rj) => {
         let sql = `CREATE TABLE ${name} (${conditions})`;
         connection.query(sql, function (err, res) {
-            let result = handleResult({ err, res, name: "createSQL" });
-            eval(result.code)(result);
+            // 给id创建索引
+            connection.query(`CREATE INDEX myId ON ${name}(id)`, function (err, res) {
+                let result = handleResult({ err, res, name: "createSQL" });
+                eval(result.code)(result);
+            });
         });
     });
 }
@@ -153,13 +156,13 @@ function getTables({ connection, name, conditions }) {
     });
 }
 
-function setTables({ connection, name, code, type, dwm }) {
+function setTables({ connection, name, code, type, dwm, jys }) {
     return new Promise(async (rl, rj) => {
         console.log(`>> ${code}: 开始存入${name}表`);
         await insertSQL({
             connection,
-            name: `${base}_${name}(code, type, dwm)`,
-            values: `('${code}', '${type}', '${dwm}')`,
+            name: `${base}_${name}(code, type, dwm, jys)`,
+            values: `('${code}', '${type}', '${dwm}',  '${jys}')`,
         })
             .then((d) => {
                 console.log(`>> set ${name} ${d.message}`);
@@ -191,27 +194,53 @@ function setTables({ connection, name, code, type, dwm }) {
 // }
 
 // 包含哪些元素
-function omitEles(datas, { flag, dwm, type } = {}) {
+function omitEles(datas, { its, dwm, type } = {}) {
     // let arr = ["zf", "ma10", "ma20", "ma60"],
-    let arr1 = ["h", "l", "o", "c", "v", "type", "zd"];
+    let arr1 = ["type", "h", "l", "o", "c", "v", "zd"];
     let arr2 = ["e", "zde", "zf", "hs", "ma10", "ma20", "ma60"];
-    let arr = ["d", "code", "dwm", ...(flag ? arr2 : arr1)];
+    // let arr = ["id", "d", "code", "dwm", ...(flag ? arr2 : arr1)];
 
-    let keys = [],
-        values = [];
-    datas.forEach((data, index) => {
-        Object.keys(data).forEach((v) => {
-            if (arr.includes(v)) {
-                if (index === 0) {
-                    keys[index] ? keys[index].push(v) : (keys[index] = flag ? ["dwm", v] : ["dwm", "type", v]);
-                }
-                // 注意sub表不需要type
-                values[index] ? values[index].push(data[v]) : (values[index] = flag ? [dwm, data[v]] : [dwm, type, data[v]]);
-            }
-        });
+    let varNames = its.map((v) => {
+        let arr = ["sub_id", "dwm", ...(v ? arr2 : arr1), "d", "code"];
+        return {
+            it: v,
+            keys: arr,
+            // 如果直接fill([])，就会触发引用类型的问题，即 values[0].xxx 和 values[1].xxx会指向同一个地址
+            values: new Array(datas.length).fill(1).map((v) => []),
+        };
     });
-    values = values.map((v) => `(${v.map((d) => `'${d}'`)})`);
-    return { keys, values };
+    let dates = [];
+    datas.forEach((data, index) => {
+        let dateId = new Date().getTime() + Math.floor(Math.random() * 1000000000000);
+        varNames.forEach((d) => {
+            d.keys.forEach((v) => {
+                let value = "";
+                switch (v) {
+                    case "sub_id":
+                        value = dateId;
+                        break;
+                    case "zf":
+                        value = data[v].slice(0, 8);
+                        break;
+                    case "dwm":
+                        value = dwm;
+                        break;
+                    case "type":
+                        value = type;
+                        break;
+                    default:
+                        value = data[v];
+                        break;
+                }
+                d.values[index].push(value);
+            });
+        });
+        dates.push(dateId);
+    });
+    varNames.forEach((v) => {
+        v.values = v.values.map((v) => `(${v.map((d) => `'${d}'`)})`);
+    });
+    return varNames;
 }
 function save({ connection, item, dwm }) {
     return new Promise(async (rl, rj) => {
@@ -219,11 +248,11 @@ function save({ connection, item, dwm }) {
 
         let arrs = ["", "sub"],
             index = -1;
+        let varNames = omitEles(data, { dwm, type, its: arrs });
         let fn = async function () {
             let it = arrs[++index];
             if (it || it === "") {
-                const { values, keys } = omitEles(data, { dwm, type, flag: it });
-
+                let { keys, values } = varNames.find((v) => v.it === it);
                 await insertSQL({
                     connection,
                     name: it ? `${base}_${type}_${it}(${keys})` : `${base}_${type}(${keys})`,

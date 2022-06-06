@@ -25,6 +25,36 @@ const URL = {
         }
         return url;
     },
+    dfcf: ({ start, end, period, codes }) => {
+        let fields1 = "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13";
+        let fields2 = "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61";
+        let klt = "101";
+        switch (period) {
+            case "d": // 天
+                klt = "101";
+                break;
+            case "w": // 周
+                klt = "102";
+                break;
+            case "m": // 月
+                klt = "103";
+                break;
+            case "q": // 季度
+                klt = "104";
+                break;
+            case "hy": // 半年
+                klt = "105";
+                break;
+            case "y": // 年
+                klt = "106";
+                break;
+            default:
+                break;
+        }
+        let code = (codes.jys === "sh" ? `1.` : "0.") + codes.code;
+
+        return `http://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=${fields1}&fields2=${fields2}&beg=${start}&end=${end}&rtntype=6&secid=${code}&klt=${klt}&fqt=1`;
+    },
     sina: ({ page, num }) => {
         /**
          * page: 20,
@@ -86,7 +116,58 @@ function callback(url, params) {
                     callback: (result) => {
                         datas = !flag && JSON.parse(body);
 
-                        if (!(datas instanceof Array)) {
+                        if (TYPE === "dfcf") {
+                            let arrs = [];
+
+                            [datas].forEach((item) => {
+                                const { data, rc } = item;
+                                const { klines, code, name } = data || {};
+
+                                if (rc === 0) {
+                                    let hp = klines.map((v) => v.split(","));
+                                    let preClose = 0;
+                                    let [last] = hp.slice(-1);
+                                    let lastTime = new Date(last[0]).getTime();
+                                    let sub = 1000 * 3600 * 24 * 10; // 如果相差10天以内就不是下市
+                                    if (endTime ? lastTime + sub >= endTime : true) {
+                                        arrs.push({
+                                            code,
+                                            type: code.slice(0, 3),
+                                            data: hp.map((level1, index1) => {
+                                                let [d, o, c, h, l, v, e, zf, zd, zde, hs] = level1;
+                                                // let zf = (((h - l) / preClose / 1) * 100).toFixed(2);
+                                                let ma10 = MA(hp, index1, 10);
+                                                let ma20 = MA(hp, index1, 20);
+                                                let ma60 = MA(hp, index1, 60);
+                                                preClose = c;
+                                                return {
+                                                    code,
+                                                    hs,
+                                                    e,
+                                                    d,
+                                                    o,
+                                                    c,
+                                                    zd,
+                                                    zde,
+                                                    l,
+                                                    h,
+                                                    v,
+                                                    zf,
+                                                    ma10,
+                                                    ma20,
+                                                    ma60,
+                                                };
+                                            }),
+                                        });
+                                    } else {
+                                        result.err = `好像下市了：${last[0]}`;
+                                    }
+                                } else {
+                                    result.error = { message: "data is null" };
+                                }
+                            });
+                            result.data = arrs;
+                        } else if (!(datas instanceof Array)) {
                         } else if (TYPE === "sohu") {
                             let arrs = [];
 
@@ -293,4 +374,9 @@ module.exports = {
  *           买一                buy
  *           昨收                settlement
  *
+ */
+
+/**
+ * 东方财富：http://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&beg=20210825&end=20210825&secid=1.600999&klt=101&fqt=1
+ * [d, o, c, h, l, v, e, zf, zd, zde, hs]
  */

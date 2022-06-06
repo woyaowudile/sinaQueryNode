@@ -77,17 +77,32 @@ function addTables(connection, name = "") {
 
         if (q_res.code === "rl") {
             console.log(`>>>>>>>>>>>> 共${q_res.data.length}条 准备创建_${name}_新表中...`);
-            let arr1 = ["h varchar(32)", "l varchar(32)", "o varchar(32)", "c varchar(32)", "v varchar(32)", "type varchar(10)", "zd varchar(10)"];
+            let arr1 = [
+                "h varchar(32) COMMENT '最高价'",
+                "l varchar(32) COMMENT '最低价'",
+                "o varchar(32) COMMENT '开盘价'",
+                "c varchar(32) COMMENT '收盘价'",
+                "v varchar(32) COMMENT '成交量'",
+                "type varchar(10)",
+                "zd varchar(10) COMMENT '涨幅'",
+            ];
             let arr2 = [
-                "e varchar(32)",
-                "zde varchar(32)",
-                "zf varchar(10)",
-                "hs varchar(10)",
+                "e varchar(32) COMMENT '换手额'",
+                "zde varchar(32) COMMENT '涨跌额'",
+                "zf varchar(10) COMMENT '振幅'",
+                "hs varchar(10) COMMENT '换手率'",
                 "ma10 varchar(16)",
                 "ma20 varchar(16)",
                 "ma60 varchar(16)",
             ];
-            let arr = ["id int auto_increment PRIMARY KEY", "d varchar(32)", "code varchar(10)", "dwm varchar(10)", ...(name ? arr2 : arr1)];
+            let arr = [
+                "id int auto_increment PRIMARY KEY",
+                "sub_id varchar(15) COMMENT '关联表id'",
+                "d varchar(32)",
+                "code varchar(10)",
+                "dwm varchar(10)",
+                ...(name ? arr2 : arr1),
+            ];
             let count = -1;
             let fn = async function () {
                 let item = q_res.data[++count];
@@ -112,7 +127,7 @@ function addTables(connection, name = "") {
 
 function addOtherTable(connection) {
     return new Promise(async (rl, rj) => {
-        let arr1 = ["id int auto_increment PRIMARY KEY", "code varchar(10)", "type varchar(10)", "dwm varchar(10)"];
+        let arr1 = ["id int auto_increment PRIMARY KEY", "code varchar(10)", "type varchar(10)", "dwm varchar(10)", "jys varchar(10)"];
         let arr2 = [
             "id int auto_increment PRIMARY KEY",
             "name varchar(10)",

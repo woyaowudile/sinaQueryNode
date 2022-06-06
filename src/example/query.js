@@ -229,10 +229,11 @@ module.exports = function (app, connection) {
         }
         console.log(`-------------开始执行 /api/querybefore---------------`);
 
+        $model.quertBefore({}, connection);
         resultsParams.init = false;
         resultsParams.waiting = true;
 
-        $model.quertBefore(req.query, connection);
+        // $model.quertBefore(req.query, connection);
     });
     app.get("/api/query", async (req, res) => {
         console.log(`-------------开始执行 /api/query---------------`);

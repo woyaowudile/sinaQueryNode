@@ -22,7 +22,7 @@ function getContent({ codes, query }) {
         // codes最多可以放6个
         await API.get({
             // 通用属性
-            type: "sohu",
+            type: "dfcf",
             // // sina属性
             // page: 1,
             // num: 100,
@@ -70,7 +70,7 @@ module.exports = function (app, connection) {
 
         let count = 0,
             stashFailItem = [];
-        let fn = async function (unusedArr = unused, num = 6) {
+        let fn = async function (unusedArr = unused, num = 1) {
             let item = unusedArr.slice(count, (count += num));
             if (item.length) {
                 let codes = item.map((v) => v.code);

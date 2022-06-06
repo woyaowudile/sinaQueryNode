@@ -30,7 +30,7 @@ function getContent({ codes, query }) {
         // codes最多可以放6个
         await API.get({
             // 通用属性
-            type: "sohu",
+            type: "dfcf",
             // // sina属性
             // page: 1,
             // num: 100,
@@ -89,7 +89,7 @@ module.exports = function (app, connection) {
             let item = unused.slice(count, (count += num));
             if (item.length) {
                 let codes = item.map((v) => v.code);
-                let ret = await getContent({ codes, query });
+                let ret = await getContent({ codes: item[0], query });
                 let res = ret.data;
 
                 /**
@@ -106,6 +106,7 @@ module.exports = function (app, connection) {
                         type,
                         name: "fail",
                         dwm,
+                        jys: item[0].jys,
                     });
                 }
                 /* *************************E_N_D************************* */
@@ -129,6 +130,7 @@ module.exports = function (app, connection) {
                         type,
                         name: "used",
                         dwm,
+                        jys: item[0].jys,
                     });
                     // }
                     res.splice(-1);
@@ -137,10 +139,10 @@ module.exports = function (app, connection) {
                 setTimeout(() => {
                     console.log(`------${count}/${unused.length}------`);
                     fn();
-                }, 200);
+                }, 100);
             } else {
                 await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
-                await $model.quertBefore({ dwm, mail: "init" }, connection);
+                // await $model.quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }
