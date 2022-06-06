@@ -77,7 +77,7 @@ module.exports = function (app, connection) {
         });
 
         const lists = await SQL.getList({ connection });
-        let arrs = lists.slice(0, lists.length);
+        let arrs = lists.slice(0, lists.length).filter((v) => ["000", "001", "002", "003", "600", "601", "603", "605"].includes(v.type));
 
         let used = usedres.concat(failres).map((v) => v.code);
 
@@ -86,6 +86,7 @@ module.exports = function (app, connection) {
         let count = 0,
             num = 1;
         let fn = async function () {
+            let start = new Date().getTime();
             let item = unused.slice(count, (count += num));
             if (item.length) {
                 let codes = item.map((v) => v.code);
@@ -124,6 +125,7 @@ module.exports = function (app, connection) {
                     //     })
                     // } else {
                     await SQL.save({ connection, item: level1, dwm });
+                    let end1 = new Date().getTime();
                     await SQL.setTables({
                         connection,
                         code,
@@ -132,14 +134,16 @@ module.exports = function (app, connection) {
                         dwm,
                         jys: item[0].jys,
                     });
+                    let end2 = new Date().getTime();
                     // }
+                    console.log(end1 - start, end2 - start);
                     res.splice(-1);
                 }
 
                 setTimeout(() => {
                     console.log(`------${count}/${unused.length}------`);
                     fn();
-                }, 100);
+                }, 10);
             } else {
                 await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
                 // await $model.quertBefore({ dwm, mail: "init" }, connection);
