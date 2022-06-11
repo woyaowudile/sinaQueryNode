@@ -70,6 +70,7 @@ class AllsClass {
         if (!qs(datas, start, "xd")) return;
 
         if (!($methods.abs(d0) * 2 < $methods.abs(d1))) return;
+        if (!($methods.abs(d2) * 2 < $methods.abs(d1))) return;
 
         // 阳线不能太大
         // if (!($methods.abs(d1) > $methods.abs(d2))) return;
@@ -176,7 +177,7 @@ class AllsClass {
         if (d2.v < d3.v) return;
         if (d3.v < d4.v) return;
 
-        if (!qs(datas, start, "xd-hp-sz")) return;
+        if (!qs(datas, start, "xd", 30)) return;
 
         let find = models.find((val, index) => {
             if (index >= 5) {
