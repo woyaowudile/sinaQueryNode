@@ -60,6 +60,9 @@ class AllsClass {
         let models = $methods.getModelLengthData(datas, start, 3);
         let [d0, d1, d2] = models;
         if (!d0) return;
+        if (d0.code === "600007" && d0.d === "2021-10-27") {
+            debugger;
+        }
         if ($methods.YingYang(d0) !== 1) return;
         if ($methods.shadowLineTooLong(d0)) return;
         if ($methods.YingYang(d1) !== 1) return;
@@ -173,9 +176,18 @@ class AllsClass {
         if ($methods.YingYang(d3) !== 1) return;
         if ($methods.YingYang(d4) !== 1) return;
         if ($methods.YingYang(d5) !== 2) return;
+        // 成交量依次降低
         if (d1.v < d2.v) return;
         if (d2.v < d3.v) return;
         if (d3.v < d4.v) return;
+        // 最高价依次降低
+        if (d1.h < d2.h) return;
+        if (d2.h < d3.h) return;
+        if (d3.h < d4.h) return;
+        // 最低价依次降低
+        if (d1.l < d2.l) return;
+        if (d2.l < d3.l) return;
+        if (d3.l < d4.l) return;
 
         if (!qs(datas, start, "xd", 30)) return;
 
