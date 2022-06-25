@@ -60,7 +60,7 @@ class AllsClass {
         let models = $methods.getModelLengthData(datas, start, 3);
         let [d0, d1, d2] = models;
         if (!d0) return;
-        if (d0.code === "600007" && d0.d === "2021-10-27") {
+        if (d0.code === "002023" && d0.d === "2022-06-21") {
             debugger;
         }
         if ($methods.YingYang(d0) !== 1) return;
@@ -391,6 +391,9 @@ class AllsClass {
         let models = datas.slice(start, datas.length - 1);
         let [d1] = models;
         if (!d1) return;
+        if (d1.code === "002208" && d1.d === "2022-06-07") {
+            debugger;
+        }
         if (!(d1.zd > 9.7)) return;
         // 突破箱体;
         let current = datas[start];

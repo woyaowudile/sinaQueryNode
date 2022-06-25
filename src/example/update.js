@@ -109,6 +109,7 @@ module.exports = function (app, connection) {
                             dwm,
                         });
                     } else {
+                        let { jys } = item.find((v) => v.code === code) || {};
                         await SQL.save({ connection, item: level1, dwm });
                         await SQL.setTables({
                             connection,
@@ -116,6 +117,7 @@ module.exports = function (app, connection) {
                             type,
                             name: "today",
                             dwm,
+                            jys,
                         });
                     }
                     res.splice(-1);

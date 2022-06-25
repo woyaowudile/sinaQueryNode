@@ -247,6 +247,7 @@ module.exports = function (app, connection) {
         let {
             days,
             date,
+            endDate,
             dwm = "d",
             size = 25,
             page = 1,
@@ -263,10 +264,11 @@ module.exports = function (app, connection) {
             index: 0,
             message: "成功",
             data: [],
+            total: 0,
         };
 
         (() => {
-            const newDate = $methods.someDay(365, "-", date);
+            const newDate = $methods.someDay(30, "-", date);
             const newDatas = [];
             let callback1 = (datas) => {
                 return new Promise(async (rl, rj) => {
@@ -277,12 +279,13 @@ module.exports = function (app, connection) {
                         const type = v.slice(0, 3);
                         !tableNames.includes(type) && tableNames.push(type);
                     });
+                    let conditionDate = `d >= '${newDate}' and d <= '${endDate}'`;
                     Promise.all(
                         tableNames.map((tableName, index) => {
                             const filterCodes = codes.filter((v) => v.slice(0, 3) === tableName);
                             return SQL.querySQL({
                                 connection,
-                                name: `${SQL.base}_${tableName} where d >= '${newDate}' and dwm = '${dwm}' and code in (${filterCodes.map(
+                                name: `${SQL.base}_${tableName} where ${conditionDate} and dwm = '${dwm}' and code in (${filterCodes.map(
                                     (v) => `'${v}'`
                                 )})`,
                             });
@@ -321,7 +324,7 @@ module.exports = function (app, connection) {
                         // 现在查询的速度差不多8-12s，
                         // if (!resultsModelsCode[item]) {
                         console.log(`>> 正在查询：${item}`);
-                        let name = `${SQL.base}_${item} where end >= '${newDate}' and dwm = '${dwm}'`;
+                        let name = `${SQL.base}_${item} where end >= '${newDate}'  and start <= '${endDate}' and dwm = '${dwm}'`;
                         if (isToday === "Y") {
                             name += ` and today='${isToday}'`;
                         }
@@ -338,6 +341,7 @@ module.exports = function (app, connection) {
                             }
                         });
                         resultsModelsCode[item] = pushModelsCode;
+                        sendResults.total = res.data.length;
                         // await fn({ datas, modelName: item, date });
                         // } else {
                         //     console.log(`>> ${item} 已记录`);
