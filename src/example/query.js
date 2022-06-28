@@ -26,6 +26,9 @@ let stash = {
     types: {},
 };
 function getSend({ code = 0, message = "成功了", result, data }) {
+    if (code === 1) {
+        message = "失败了";
+    }
     return { code, message, result, data };
 }
 module.exports = function (app, connection) {
@@ -93,10 +96,33 @@ module.exports = function (app, connection) {
     });
 
     app.get("/api/query/table", async (req, res) => {
+        let { page, pageSize, ...query } = req.query;
+        let conditions = "";
+        let fn = function (name, value) {
+            if (name && value) {
+                conditions += ` ${conditions ? "and" : ""}`;
+                switch (name) {
+                    case "start_date":
+                        conditions += ` buy_date >= '${value}'`;
+                        break;
+                    case "end_date":
+                        conditions += ` buy_date <='${value}'`;
+                        break;
+                    default:
+                        conditions += ` ${name} ='${value}'`;
+                        break;
+                }
+            }
+        };
+        Object.keys(query).forEach((v) => {
+            fn(v, query[v]);
+        });
+        conditions += ` ORDER BY buy_date DESC, level DESC`;
+        conditions += ` LiMIT ${(page - 1) * pageSize}, ${pageSize}`;
         const result = await SQL.getTables({
             connection,
             name: `checked`,
-            conditions: ``,
+            conditions,
         });
         res.send(getSend({ result: getSend({ data: result }) }));
     });
@@ -166,7 +192,7 @@ module.exports = function (app, connection) {
         req.on("end", async () => {
             const obj = JSON.parse(body);
             const names = Object.keys(obj);
-            const values = names.map((v) => `${v} = ${obj[v]}`);
+            const values = names.map((v) => `${v} = '${obj[v]}'`);
             let msg = "",
                 code = 0;
             await SQL.updateSQL({
@@ -193,13 +219,14 @@ module.exports = function (app, connection) {
         if (id) {
             conditions += `id in (${id})`;
         }
-        if (code) {
-            conditions += `code = ${code}`;
-        }
-        if (models) {
-            const arrs = models.split(",");
-            conditions += ` and name_key in ('${arrs}') `;
-        }
+        // if (code) {
+        //     conditions += `code = ${code}`;
+        // }
+        // if (models) {
+        //     const arrs = models.split(",");
+        //     conditions += ` and name_key in ('${arrs}') `;
+        // }
+        let sendCode = 0;
         await SQL.deleteSQL({
             connection,
             name: `${SQL.base}_checked`,
@@ -208,12 +235,14 @@ module.exports = function (app, connection) {
             .then((d) => {
                 msg = `>> checked delete '${id}' ${d.message}`;
                 console.log(msg);
+                sendCode = 0;
             })
             .catch((err) => {
                 msg = `>> checked delete '${id}' ${err.message}`;
                 console.log(msg);
+                sendCode = 1;
             });
-        res.send(getSend({ result: getSend({ message: msg }) }));
+        res.send(getSend({ result: getSend({ code: sendCode, message: msg }) }));
     });
 
     app.get("/api/querybefore", async (req, res) => {
@@ -268,7 +297,7 @@ module.exports = function (app, connection) {
         };
 
         (() => {
-            const newDate = $methods.someDay(30, "-", date);
+            const newDate = $methods.someDay(isToday === "Y" ? 365 : 30, "-", date);
             const newDatas = [];
             let callback1 = (datas) => {
                 return new Promise(async (rl, rj) => {
