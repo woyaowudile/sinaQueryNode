@@ -26,9 +26,6 @@ let stash = {
     types: {},
 };
 function getSend({ code = 0, message = "成功了", result, data }) {
-    if (code === 1) {
-        message = "失败了";
-    }
     return { code, message, result, data };
 }
 module.exports = function (app, connection) {
@@ -98,15 +95,19 @@ module.exports = function (app, connection) {
     app.get("/api/query/table", async (req, res) => {
         let { page, pageSize, ...query } = req.query;
         let conditions = "";
-        let fn = function (name, value) {
+        let fn = function (name, value, flag = true) {
             if (name && value) {
-                conditions += ` ${conditions ? "and" : ""}`;
+                conditions += ` ${conditions && flag ? "and" : ""}`;
                 switch (name) {
                     case "start_date":
                         conditions += ` buy_date >= '${value}'`;
                         break;
                     case "end_date":
                         conditions += ` buy_date <='${value}'`;
+                        break;
+                    case "order":
+                    case "limit":
+                        conditions += value;
                         break;
                     default:
                         conditions += ` ${name} ='${value}'`;
@@ -117,8 +118,14 @@ module.exports = function (app, connection) {
         Object.keys(query).forEach((v) => {
             fn(v, query[v]);
         });
-        conditions += ` ORDER BY buy_date DESC, level DESC`;
-        conditions += ` LiMIT ${(page - 1) * pageSize}, ${pageSize}`;
+        if (!conditions) {
+            let date = $methods.someDay();
+            conditions += ` buy_date <= '${date}'`;
+        }
+        fn("order", ` ORDER BY buy_date DESC, level DESC`, false);
+        if (page) {
+            fn("limit", ` LiMIT ${(page - 1) * pageSize}, ${pageSize}`, false);
+        }
         const result = await SQL.getTables({
             connection,
             name: `checked`,

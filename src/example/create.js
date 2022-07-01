@@ -143,6 +143,8 @@ function addOtherTable(connection) {
             "profit_reference varchar(10) COMMENT '参考利润（元）'",
             "profit varchar(10) COMMENT '实际利润（元）'",
             "wait varchar(4) COMMENT '待定(不确定，需要等待观察)'",
+            "is_real varchar(4) COMMENT '是否实盘'",
+            "is_sl varchar(4) COMMENT '是否止损'",
             "remark varchar(255) COMMENT '理由/备注'",
             "remark census(10) COMMENT '统计'",
             "type varchar(10)",
