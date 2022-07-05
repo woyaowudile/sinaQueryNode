@@ -467,9 +467,10 @@ module.exports = function (app, connection) {
 
         let { startDate, endDate, dwm = "d", code, models } = req.query;
         let type = code.slice(0, 3);
+        let newStartDate = $methods.someDay(70, "-", startDate);
         let conditions = `dwm='${dwm}' and code = '${code}' `;
-        if (startDate) {
-            conditions += ` and d >= '${$methods.someDay(0, "-", startDate)}' `;
+        if (newStartDate) {
+            conditions += ` and d >= '${newStartDate}' `;
         }
         if (endDate) {
             conditions += ` and '${endDate}' >= d`;
@@ -487,11 +488,11 @@ module.exports = function (app, connection) {
             // num: 100,
             // sohu属性
             codes: [code],
-            start: startDate.replace(/-/g, ""),
+            start: newStartDate.replace(/-/g, ""),
             end: endDate.replace(/-/g, ""),
             period: dwm,
         });
-        $model.getModel({ item: queryRes.data[0].data, date: startDate, dwm, inModels: [models] });
+        $model.getModel({ item: queryRes.data[0].data, date: newStartDate, dwm, inModels: [models] });
         console.log("》》 -- 查询queryOne成功 -- 《《");
         const sendResults = {
             code: 0,

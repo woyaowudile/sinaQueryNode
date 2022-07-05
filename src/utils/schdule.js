@@ -43,7 +43,7 @@ module.exports = {
                 // 每周的一二三四五 的 下午5：30
                 connection.query(`DELETE FROM xxxx_today WHERE dwm = 'd'`, async (err, result) => {
                     if (err) {
-                        console.log("------ 每日更新：失败");
+                        console.log("------ 每日更新：失败", err);
                     } else {
                         sendMail(`今天（${new Date().toLocaleString()}）的任务开始了 by new`, "（开始）");
                         await getRequest("http://localhost:3334/api/update?dwm=d");
@@ -64,7 +64,7 @@ module.exports = {
                 // 每周的一二三四五 的 上午5：30
                 connection.query(`SELECT * FROM xxxx_checked WHERE buy_date = '${day}'`, async (err, result) => {
                     if (err) {
-                        console.log("------ 每日推送：失败");
+                        console.log("------ 每日推送：失败", err);
                     } else {
                         if (result.length) {
                             let datas = result.map((v) => ({
