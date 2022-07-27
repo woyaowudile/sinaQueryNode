@@ -26,6 +26,7 @@ app.listen(port, async () => {
     console.log("-\n--\n---");
     console.log(`---- 启动地址：http://localhost:${port}`);
     console.log("-------------常用链接地址---------------");
+    console.log(`http://localhost:${port}/api/initSH`);
     console.log(`http://localhost:${port}/api/init`);
     console.log(`http://localhost:${port}/api/update`);
     console.log(`http://localhost:${port}/api/query`);

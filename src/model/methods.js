@@ -69,29 +69,21 @@ class Methods {
             return l <= compare;
         });
     }
-    JC(data, start) {
-        let slow = 60,
-            fast = 10;
-        let bma60 = MA(data, start, slow);
-        let bma10 = MA(data, start, fast);
-        let ma60 = MA(data, start - 1, slow);
-        let ma10 = MA(data, start - 1, fast);
-        let ama60 = MA(data, start - 2, slow);
-        let ama10 = MA(data, start - 2, fast);
+    JC(data, start, arrs = [10, 60]) {
+        let list = arrs.map((v) => {
+            let before = data[start - 2][`ma${v}`];
+            let cur = data[start - 1][`ma${v}`];
+            let after = data[start][`ma${v}`];
+            return [before, cur, after];
+        });
 
         // 金
-        if (ama60 < ama10 && bma60 > bma10) {
+        if (list[0][0] < list[1][0] && list[0][2] > list[1][2]) {
             return {
-                ma60,
-                ma10,
                 status: 3,
             };
-        } else if (bma10 > bma60 && ama60 > ama10) {
-            return {
-                ma60,
-                ma10,
-                status: 1,
-            };
+        } else {
+            return {};
         }
     }
     /**

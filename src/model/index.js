@@ -510,21 +510,30 @@ class AllsClass {
     }
     isGsbf1({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
-        if (start < 60) return;
+        if (start < 61) return;
         // 10\60
-        let { status, ma60 } = $methods.JC(datas, start) || {};
+        let current = datas[start];
+        let { status } = $methods.JC(datas, start) || {};
         if (status !== 3) return;
         // 4. 当天的阳线要上穿慢速均线
-        let current = datas[start - 1];
         if ($methods.YingYang(current) !== 2) return;
-        if (!(current.c > ma60)) return;
+        let curs = datas.slice(start - 4, datas.length);
+        let min;
+        let curIndex = curs.findIndex((v) => {
+            // 实体 > 0.5  || 涨停
+            min = !min ? v.ma60 : v.ma60 < min ? v.ma60 : min;
+            return current.zd >= 9.5 || ($methods.YingYang(v) === 2 && $methods.entity(v) > 0.0179);
+        });
+        let minIndex = curs.findIndex((v) => v.ma60 === min);
+        if (!(curIndex > -1 && minIndex > -1)) return;
+        if (!(curs[curIndex].ma60 > minIndex)) return;
         let coords = ["isGsbf1", current.d];
         exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: current });
     }
 
     isGsbf2({ results, datas, start, dwm }) {
         if (dwm !== "w") return;
-        if (start < 60) return;
+        if (start < 90) return;
         let current = datas[start]; // // 10\60
         if (!(current.d && $methods.YingYang(current) === 2)) return;
 
@@ -532,7 +541,7 @@ class AllsClass {
             debugger;
         }
 
-        if (!qs(datas, start, "sz-xd", 90, dwm)) return;
+        if (!qs(datas, start, "xd", 30, dwm)) return;
         let isArrrange = $methods.arrange(datas, start - 90, [10, 20, 60]);
         if (!isArrrange) return;
         let coords = ["isGsbf2", current.d];
@@ -708,30 +717,32 @@ class AllsClass {
             results = [];
         let current = new Date(date).getTime();
         let models = [
-            { name: "isKlyh", status: 1 },
-            { name: "isYjsd", status: 2 },
-            { name: "isQx1", status: 1 },
-            { name: "isQx2", status: 1 },
-            // { name: "isFkwz", status: 1 },
-            { name: "isCsfr", status: 1 },
-            // { name: "isLahm", status: 2 },
-            { name: "isSlbw0", status: 1 },
-            { name: "isSlbw1", zd: true },
+            { name: "isKlyh", status: 1, dwm: "d" },
+            { name: "isYjsd", status: 2, dwm: "d" },
+            { name: "isQx1", status: 1, dwm: "d" },
+            { name: "isQx2", status: 1, dwm: "d" },
+            // { name: "isFkwz", status: 1, dwm: 'd' },
+            { name: "isCsfr", status: 1, dwm: "d" },
+            // { name: "isLahm", status: 2, dwm: 'd' },
+            { name: "isSlbw0", status: 1, dwm: "d" },
+            { name: "isSlbw1", zd: true, dwm: "d" },
             // { name: "isSlbw2", zd: true},
-            { name: "isSlbw3", zd: true },
-            // { name: "isSlbw4", status: 2 },
-            { name: "isDy", status: 2 },
-            // { name: "isPjtl", status: 3 },
-            { name: "isYydl", status: 2 },
-            { name: "isGsdn", status: 3 },
-            { name: "isFhlz", zd: true },
-            { name: "isLzyy", zd: true },
-            { name: "isFlzt", zd: true },
-            { name: "isSbg3", status: 2 },
-            { name: "isGsbf2", status: 2 },
-            // { name: 'isG8M1', status: 1 },
-            // { name: 'isYylm', status: 3 },
+            { name: "isSlbw3", zd: true, dwm: "d" },
+            // { name: "isSlbw4", status: 2, dwm: 'd' },
+            { name: "isDy", status: 2, dwm: "d" },
+            // { name: "isPjtl", status: 3, dwm: 'd' },
+            { name: "isYydl", status: 2, dwm: "d" },
+            { name: "isGsdn", status: 3, dwm: "d" },
+            { name: "isFhlz", zd: true, dwm: "d" },
+            { name: "isLzyy", zd: true, dwm: "d" },
+            { name: "isFlzt", zd: true, dwm: "d" },
+            { name: "isSbg3", status: 2, dwm: "d" },
+            { name: "isGsbf1", status: 2, dwm: "w" },
+            { name: "isGsbf2", status: 2, dwm: "w" },
+            // { name: 'isG8M1', status: 1, dwm: 'd' },
+            // { name: 'isYylm', status: 3, dwm: 'd' },
         ].filter((v) => (inModels ? inModels.includes(v.name) : true));
+        models = models.filter((v) => v.dwm === dwm);
 
         datas.forEach((level1, index1) => {
             let { zd, d, code } = level1;
