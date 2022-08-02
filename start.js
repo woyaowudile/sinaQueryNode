@@ -36,6 +36,7 @@ app.listen(port, async () => {
     console.log(`http://localhost:${port}/api/duplicate/remove`);
     console.log("----------- warning --------");
     console.log(`http://localhost:${port}/api/clear`);
+    console.log(`http://localhost:${port}/api/clear/date`);
     console.log("-------------常用链接地址---------------");
     console.log("---\n--\n-");
 });

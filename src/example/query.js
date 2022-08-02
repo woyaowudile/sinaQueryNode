@@ -502,4 +502,18 @@ module.exports = function (app, connection) {
         };
         res.send(getSend({ result: sendResults }));
     });
+
+    app.get("/api/email", async (req, res) => {
+        console.log(`-------------开始执行 /api/email---------------`);
+
+        let { d, days = 0 } = req.query;
+        let date = d || $methods.someDay(days);
+        const queryRes = await SQL.querySQL({
+            connection,
+            name: `${SQL.base}_email`,
+            conditions: `d = ${date}`,
+        });
+        console.log("》》 -- 查询email成功 -- 《《");
+        res.send(getSend({ result: queryRes }));
+    });
 };

@@ -1,8 +1,31 @@
 /** @format */
 
-const { getRequest } = require("../model/methods");
+const { getRequest, someDay } = require("../model/methods");
 const SQL = require("../sql");
 const { modelsCode, otherTableCodes } = require("../utils/code");
+
+function getSQL(connection, { item, d, sub }) {
+    return new Promise(async (rl, rj) => {
+        let name = `xxxx_${item.type}`;
+        if (sub) name += "_sub";
+        const queryRes = await SQL.querySQL({
+            connection,
+            select: "id",
+            name: `${name}`,
+            conditions: `d='${d}'`,
+        });
+        let ids = queryRes.data.map((v) => `${v.id}`);
+        if (ids.length) {
+            await SQL.deleteSQL({
+                connection,
+                name: `${name}`,
+                conditions: `id in (${ids})`,
+            });
+            console.log(`>>>> 清除完成 xxxx_${item.type}： ${d}`);
+        }
+        rl();
+    });
+}
 
 module.exports = function (app, connection) {
     app.get("/api/clear", async (req, res) => {
@@ -61,5 +84,32 @@ module.exports = function (app, connection) {
 
             res.send("ok");
         });
+    });
+
+    app.get("/api/clear/date", async (req, res) => {
+        console.log("-------------开始执行 /api/clear/date---------------");
+        let { d = someDay(0) } = req.query;
+
+        const queryRes = await SQL.querySQL({
+            connection,
+            distinct: `DISTINCT type`,
+            name: "ig502_list",
+        });
+        let index = -1;
+        let fn = async function () {
+            let item = queryRes.data[++index];
+            if (item) {
+                await getSQL(connection, { item, d });
+                console.log(`>> 正在清除 xxxx_${item.type}： ${d}`);
+                await getSQL(connection, { item, d, sub: true });
+                console.log(`>> 正在清除 xxxx_${item.type}_sub： ${d}`);
+                fn();
+            } else {
+                console.log(`》》-- 执行完成 /api/clear/date --《《`);
+
+                res.send("ok");
+            }
+        };
+        fn();
     });
 };

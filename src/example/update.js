@@ -52,6 +52,7 @@ function getContent({ codes, query }) {
 module.exports = function (app, connection) {
     app.get("/api/update", async (req, res) => {
         let { query } = req;
+        let isNeedCheck = !query.noCheck;
         let dwm = query.dwm || "d";
         console.log(`-------------开始执行 /api/update?${dwm}---------------`);
         // 获取到today还没被update的code
@@ -72,7 +73,7 @@ module.exports = function (app, connection) {
             stashFailItem = [];
         let fn = async function (unusedArr = unused, num = 6) {
             let item = unusedArr.slice(count, (count += num));
-            if (item.length) {
+            if (item.length && isNeedCheck) {
                 let codes = item.map((v) => v.code);
 
                 let ret = await getContent({ codes, query });
@@ -132,8 +133,8 @@ module.exports = function (app, connection) {
                     fn(stashFailItem, 1);
                     stashFailItem = [];
                 } else {
-                    await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
-                    await $model.quertBefore({ dwm, mail: "update" }, connection);
+                    isNeedCheck && (await $methods.getRequest("http://localhost:3334/api/duplicate/remove"));
+                    await $model.quertBefore({ dwm, mail: "update", isNeedCheck }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
                     console.log(`-------------执行完成 /api/update?${dwm}---------------`);
                 }

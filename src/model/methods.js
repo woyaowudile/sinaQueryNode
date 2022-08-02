@@ -490,6 +490,7 @@ class Methods {
     downloadExcel(datas, dwm, counts = {}) {
         return new Promise(async (rl, rj) => {
             let lists = [],
+                versionList = [],
                 saveDatas = {},
                 newDatas = {},
                 html = "";
@@ -499,9 +500,16 @@ class Methods {
                     const [name] = d;
                     // 每个模型对应的 比较时间不同
                     const days = modelsCode[name];
-                    const flag = this.compareTime(this.someDay(days), d[2]);
+                    const last = v.datas[v.datas.length - 1];
+                    const flag = this.compareTime(this.someDay(days, "-", last.d), d[2]);
                     const data = [v.code, d[1], d[2], dwm];
                     if (flag) {
+                        versionList.push({
+                            name,
+                            code: v.code,
+                            d: d[2],
+                            dwm,
+                        });
                         counts[name] = (counts[name] || 0) + 1;
                         // 表示当天的，和发的邮件保持一致
                         data.push("Y");
@@ -531,6 +539,9 @@ class Methods {
             });
             try {
                 const excelName = `download_${dwm}.xlsx`;
+                if (versionList.length) {
+                    await this.saveVersionList(versionList);
+                }
                 if (lists.length) {
                     // const buffer = nodeExcel.build(lists);
                     // fs.writeFile(excelName, buffer, async (err) => {
@@ -597,10 +608,42 @@ class Methods {
                         // values: `${item[1].map((v) => `('${v}')`)}`,
                         values,
                     });
-                    console.log(`>>> ${SQL.base}_${item[0]} ...`);
+                    console.log(`>>> ${SQL.base}_${item[0]} ...已完成`);
                     fn();
                 } else {
                     console.log("》》 - 存入完成 - 《《");
+                    rl();
+                }
+            };
+            fn();
+        });
+    }
+    saveVersionList(datas) {
+        return new Promise(async (rl, rj) => {
+            let index = -1;
+            let date = datas[0].d;
+
+            // await SQL.deleteSQL({
+            //     connection: global.customConnection,
+            //     name: `${SQL.base}_email`,
+            //     conditions: `d = '${date}'`,
+            // });
+            console.log(`>>> 开始存入${SQL.base}_email表: ${date} ...`);
+            let fn = async function () {
+                const item = datas[++index];
+                if (item) {
+                    console.log(`> email表存入中：${item.name} - ${item.code} ...`);
+                    const keys = Object.keys(item);
+                    const values = Object.values(item);
+
+                    await SQL.insertSQL({
+                        connection: global.customConnection,
+                        name: `${SQL.base}_email(${keys})`,
+                        values: `(${values.map((v) => `'${v}'`)})`,
+                    });
+                    fn();
+                } else {
+                    console.log(`》》 - 存入 -- ${SQL.base}_email表 -- 完成 - 《《`);
                     rl();
                 }
             };

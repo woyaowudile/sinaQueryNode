@@ -150,11 +150,13 @@ function addOtherTable(connection) {
             "type varchar(10)",
             "dwm varchar(10)",
         ];
+        let arr3 = ["id int auto_increment PRIMARY KEY", "name varchar(10)", "code varchar(10)", "d varchar(10)", "dwm varchar(10)"];
         let names = [
             { word: `${SQL.base}_fail`, conditions: arr1 },
             { word: `${SQL.base}_used`, conditions: arr1 },
             { word: `${SQL.base}_today`, conditions: arr1 },
             { word: `${SQL.base}_checked`, conditions: arr2 },
+            { word: `${SQL.base}_email`, conditions: arr3 },
         ];
         console.log(`>>>>>>>>>>>> 共${names.length}条 准备创建新表中...`);
         let count = -1;

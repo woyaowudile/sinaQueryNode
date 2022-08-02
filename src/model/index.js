@@ -512,7 +512,11 @@ class AllsClass {
         if (dwm !== "w") return;
         if (start < 61) return;
         // 10\60
+        let models = datas.slice(start - 2, start + 1);
         let current = datas[start];
+        if (current.d === "2019-11-01" && current.code === "002004") {
+            debugger;
+        }
         let { status } = $methods.JC(datas, start) || {};
         if (status !== 3) return;
         // 4. 当天的阳线要上穿慢速均线
@@ -527,7 +531,7 @@ class AllsClass {
         let minIndex = curs.findIndex((v) => v.ma60 === min);
         if (!(curIndex > -1 && minIndex > -1)) return;
         if (!(curs[curIndex].ma60 > minIndex)) return;
-        let coords = ["isGsbf1", current.d];
+        let coords = ["isGsbf1", current.d, datas[curIndex].d];
         exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: current });
     }
 
@@ -571,6 +575,7 @@ class AllsClass {
                 codes = "600,601,603,000,002",
                 models,
                 mail = "query-before",
+                isNeedCheck = true,
             } = query;
             let resultsParams = {
                 init: true,
@@ -637,7 +642,7 @@ class AllsClass {
                         // await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }
                     const html = $methods.getMailHtml(resultsParams.downloads, mail, dwm);
-                    sendMail(html);
+                    isNeedCheck && sendMail(html);
                     console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
                     rl(resultsParams.codes);
                     resultsParams.codes = [];
@@ -738,7 +743,7 @@ class AllsClass {
             { name: "isFlzt", zd: true, dwm: "d" },
             { name: "isSbg3", status: 2, dwm: "d" },
             { name: "isGsbf1", status: 2, dwm: "w" },
-            { name: "isGsbf2", status: 2, dwm: "w" },
+            // { name: "isGsbf2", status: 2, dwm: "w" },
             // { name: 'isG8M1', status: 1, dwm: 'd' },
             // { name: 'isYylm', status: 3, dwm: 'd' },
         ].filter((v) => (inModels ? inModels.includes(v.name) : true));
@@ -756,7 +761,6 @@ class AllsClass {
                 start: index1,
                 results,
             };
-
             switch ($methods.YingYang(level1)) {
                 case 1:
                     models.forEach((v) => v.status === 1 && this[v.name](params));

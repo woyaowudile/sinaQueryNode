@@ -6,8 +6,8 @@ function MA(datas, start, n) {
     let data = datas.slice(start - (n - 1), start + 1);
     if (data.length === n) {
         let count = data.reduce((x, y) => {
-            let x1 = x.c ? x.c : x[2] ? x[2] / 1 : x;
-            let y1 = y.c ? y.c : y[2] ? y[2] / 1 : y;
+            let x1 = (x.c ? x.c : x[2] ? x[2] : x) / 1;
+            let y1 = (y.c ? y.c : y[2] ? y[2] : y) / 1;
             return x1 + y1;
         }, 0);
         return (count / n).toFixed(2) / 1;

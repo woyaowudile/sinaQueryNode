@@ -14,6 +14,7 @@
 ```js
 /*
 *   @param dwm d
+*   @param noCheck 不更新，直接筛选模型(false)
 *   @param start 开始时间(19920601)
 *   @param end  结束时间(20220315)
 *   @param days 如果开始、结束传参，则days不生效(例： days=5 即 3.10 - 5 = 3.5)
