@@ -483,6 +483,11 @@ class AllsClass {
         let coords = ["isSlqs", d2.d, d3.d];
         exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d3 });
     }
+    isXlzt({ results, datas, start, dwm }) {
+        if (dwm !== "d") return;
+        let current = datas[start];
+        let pre = datas[start - 1];
+    }
     isPjtl({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let current = datas[start];

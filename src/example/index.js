@@ -1,18 +1,28 @@
 /** @format */
 
-const create = require("./create");
-const initSH = require("./initSH");
-const init = require("./init");
-const update = require("./update");
-const query = require("./query");
-const clear = require("./clear");
-const download = require("./download");
-const duplicate = require("./duplicate");
-const test = require("./test");
+const fs = require("fs");
 
-const apps = [create, initSH, init, update, query, clear, download, duplicate, test];
+function getApps() {
+    return new Promise((rl, rj) => {
+        const path = "./src/example";
+        fs.readdir(path, (err, files) => {
+            if (err) {
+                rj(err);
+            }
+            const lists = files
+                .map((v) => {
+                    if (v !== "index.js") {
+                        return require(`./${v}`);
+                    }
+                })
+                .filter((v) => v);
+            rl(lists);
+        });
+    });
+}
 
-function runApi(app, connection) {
+async function runApi(app, connection) {
+    const apps = await getApps();
     apps.forEach((item) => {
         if (typeof item === "function") {
             item(app, connection);

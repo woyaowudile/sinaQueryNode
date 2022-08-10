@@ -1,5 +1,6 @@
 /** @format */
 
+const fs = require("fs");
 const express = require("express");
 const app = express();
 const port = 3334;
@@ -23,20 +24,24 @@ app.listen(port, async () => {
     global.customConnection = connection;
     // 2. 开放接口
     runApi(app, connection);
-    console.log("-\n--\n---");
-    console.log(`---- 启动地址：http://localhost:${port}`);
-    console.log("-------------常用链接地址---------------");
-    console.log(`http://localhost:${port}/api/initSH`);
-    console.log(`http://localhost:${port}/api/init`);
-    console.log(`http://localhost:${port}/api/update`);
-    console.log(`http://localhost:${port}/api/query`);
-    console.log(`http://localhost:${port}/api/querybefore`);
-    console.log(`http://localhost:${port}/api/download`);
-    console.log(`http://localhost:${port}/api/createNewTables`);
-    console.log(`http://localhost:${port}/api/duplicate/remove`);
-    console.log("----------- warning --------");
-    console.log(`http://localhost:${port}/api/clear`);
-    console.log(`http://localhost:${port}/api/clear/date`);
-    console.log("-------------常用链接地址---------------");
-    console.log("---\n--\n-");
+
+    // 3. 打印执行日志
+    let mk = fs.readFile("./README.md", "utf-8", (err, data) => {
+        if (err) {
+            console.log("--------- 启动失败 ---------");
+        }
+        if (data && typeof data === "string") {
+            console.log("-\n--\n---");
+            console.log("-------------常用链接地址---------------");
+            let arrs = [...data.matchAll(/<div>(.*?)<\/div>/g)];
+            arrs.forEach((v) => {
+                if (v[1] === "api/clear") {
+                    console.log("----------- warning --------");
+                }
+                console.log(`http://localhost:${port}/${v[1]}`);
+            });
+            console.log("-------------常用链接地址---------------");
+            console.log("---\n--\n-");
+        }
+    });
 });

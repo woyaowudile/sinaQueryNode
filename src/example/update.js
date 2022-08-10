@@ -61,11 +61,13 @@ module.exports = function (app, connection) {
             name: "used",
             conditions: `dwm='${dwm}'`,
         });
+        console.log(`>> used：${used.length}`);
         let tds = await SQL.getTables({
             connection,
             name: "today",
             conditions: `dwm='${dwm}'`,
         });
+        console.log(`>> tds：${tds.length}`);
         tds = tds.map((v) => v.code);
         let unused = used.filter((v) => !tds.includes(v.code));
 

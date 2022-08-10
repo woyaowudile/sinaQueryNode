@@ -70,11 +70,14 @@ module.exports = function (app, connection) {
             name: "used",
             conditions: `dwm='${dwm}'`,
         });
+        console.log(`>> usedres：${usedres.length}`);
+
         let failres = await SQL.getTables({
             connection,
             name: "fail",
             conditions: `dwm='${dwm}'`,
         });
+        console.log(`>> failres：${failres.length}`);
 
         const lists = await SQL.getList({ connection });
         let arrs = lists.slice(0, lists.length).filter((v) => ["000", "001", "002", "003", "600", "601", "603", "605"].includes(v.type));

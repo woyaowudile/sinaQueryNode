@@ -252,25 +252,6 @@ module.exports = function (app, connection) {
         res.send(getSend({ result: getSend({ code: sendCode, message: msg }) }));
     });
 
-    app.get("/api/querybefore", async (req, res) => {
-        if (!resultsParams.init) {
-            res.send(
-                getSend({
-                    result: {
-                        code: 0,
-                        message: "已经预处理成功，请勿重复",
-                    },
-                })
-            );
-        }
-        console.log(`-------------开始执行 /api/querybefore---------------`);
-
-        $model.quertBefore({}, connection);
-        resultsParams.init = false;
-        resultsParams.waiting = true;
-
-        // $model.quertBefore(req.query, connection);
-    });
     app.get("/api/query", async (req, res) => {
         console.log(`-------------开始执行 /api/query---------------`);
 

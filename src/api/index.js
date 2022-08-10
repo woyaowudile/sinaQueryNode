@@ -1,9 +1,10 @@
 /** @format */
 
 const request = require("request");
+const { someDay } = require("../model/methods");
 const { MA } = require("./methods");
 
-const { sohu, sina, ig502, holidays } = require("./url");
+const { sohu, sina, ig502, holidays, dfcf } = require("./url");
 
 const LICENCE = "3E68261B-3A3D-88E6-E903-B0C327D49AA4";
 
@@ -53,7 +54,7 @@ const URL = {
         }
         let code = (codes.jys === "sh" ? `1.` : "0.") + codes.code;
 
-        return `http://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=${fields1}&fields2=${fields2}&beg=${start}&end=${end}&rtntype=6&secid=${code}&klt=${klt}&fqt=1`;
+        return `${dfcf}?fields1=${fields1}&fields2=${fields2}&beg=${start}&end=${end}&rtntype=6&secid=${code}&klt=${klt}&fqt=1`;
     },
     sina: ({ page, num }) => {
         /**
@@ -327,11 +328,13 @@ module.exports = {
         TYPE = params.type || "sohu";
         return callback(URL[TYPE](params), params);
     },
-    getHolidays: (inDay, workday = 2) => {
+    getHolidays: (inDay) => {
+        const workday = 2; // 非工作日
         const date = new Date(inDay);
         const year = date.getFullYear();
         const month = `${date.getMonth() + 1}`.padStart(2, 0);
         const day = `${date.getDate()}`.padStart(2, 0);
+        const week = date.getDay();
         return new Promise((rl, rj) => {
             request(
                 {
@@ -342,10 +345,62 @@ module.exports = {
                     },
                 },
                 (error, response, body) => {
-                    let res = JSON.parse(body);
+                    const current = (year + month + day) / 1;
+                    const res = JSON.parse(body);
                     if (res.code === 0) {
-                        const data = res.data.list.find((v) => `${v.date}` === year + month + day);
-                        rl(data);
+                        const lists = res.data.list,
+                            result = { isWorkDay: true, d: 0, w: 0, m: 0 };
+                        let cur = current,
+                            flag = false;
+
+                        let endDate = new Date(year, month, 0).getDate();
+                        result.isWorkDay = !lists.find((v) => v.date === current);
+
+                        // 设置周
+                        lists.some((v, i, arrs) => {
+                            if (result.isWorkDay) {
+                                if (current > v.date || i === arrs.length - 1) {
+                                    let pre = arrs[i - 1];
+                                    let sub = pre ? pre.date - current : 0;
+                                    if (!pre) {
+                                        // 最后一周没有周末的情况，2022-09
+                                        result.w = endDate === day ? 0 : week;
+                                    } else if (sub === 1 || sub < 0) {
+                                        // 节假日前一天
+                                        result.w = 0;
+                                    } else {
+                                        // 节假日前几天
+                                        result.w = week === 0 ? 7 : week;
+                                    }
+                                    return true;
+                                }
+                            } else {
+                                if (v.date === cur) {
+                                    cur--;
+                                    result.w++;
+                                }
+                            }
+                        });
+                        // 设置月
+                        if (day === endDate) {
+                            result.isWorkMonth = true;
+                            result.m = 0;
+                        } else {
+                            result.m = day / 1;
+                        }
+
+                        // 判断值，是否是周六、周日
+                        let fn = function (dwm) {
+                            let days = new Date(someDay(result[dwm], "-", `${year}-${month}-${day}`)).getDay();
+                            if (days === 0) {
+                                result[dwm] += 2;
+                            } else if (days === 6) {
+                                result[dwm] += 1;
+                            }
+                        };
+                        ["w", "m"].forEach((v) => fn(v));
+
+                        rl(result);
                     }
                 }
             );
