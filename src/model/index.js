@@ -486,7 +486,13 @@ class AllsClass {
     isXlzt({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
         let current = datas[start];
-        let pre = datas[start - 1];
+        if (!($methods.YingYang(current) === 2)) return;
+        let pre1 = datas[start - 1];
+        let pre2 = datas[start - 2];
+        if (!($methods.YingYang(pre1) === 1)) return;
+        if (!(current.c > pre1.o)) return;
+        if (!(pre1.o > pre2.c)) return;
+        debugger;
     }
     isPjtl({ results, datas, start, dwm }) {
         if (dwm !== "d") return;
@@ -519,7 +525,7 @@ class AllsClass {
         // 10\60
         let models = datas.slice(start - 2, start + 1);
         let current = datas[start];
-        if (current.d === "2019-11-01" && current.code === "002004") {
+        if (current.d === "2020-02-07" && current.code === "002004") {
             debugger;
         }
         let { status } = $methods.JC(datas, start) || {};
@@ -536,7 +542,7 @@ class AllsClass {
         let minIndex = curs.findIndex((v) => v.ma60 === min);
         if (!(curIndex > -1 && minIndex > -1)) return;
         if (!(curs[curIndex].ma60 > minIndex)) return;
-        let coords = ["isGsbf1", current.d, datas[curIndex].d];
+        let coords = ["isGsbf1", current.d, curs[curIndex].d];
         exportResults({ results, models, datas, dwm, coords, startDay: current, buyDate: current });
     }
 
@@ -576,7 +582,7 @@ class AllsClass {
                 end,
                 count = -1,
                 // codes = "002",
-                // models = ["isPjtl"],
+                // models = ["isGsbf1"],
                 codes = "600,601,603,000,002",
                 models,
                 mail = "query-before",
@@ -698,11 +704,11 @@ class AllsClass {
                     const results = Object.keys(datas)
                         .map((v) => {
                             const data = datas[v].sort((x, y) => new Date(x.d).getTime() - new Date(y.d).getTime());
-                            const res = _this.getModel({ item: data, date, dwm });
+                            const res = _this.getModel({ item: data, date, dwm, inModels: models });
                             return res[0];
                         })
                         .filter((v) => v);
-                    await $methods.downloadExcel(results, dwm, resultsParams.downloads);
+                    await $methods.downloadExcel(results, isNeedCheck, dwm, resultsParams.downloads);
                     // resultsParams.downloads = resultsParams.downloads.concat(results);
                     // resultsParams.codes = resultsParams.codes.concat(datas);
                     getDatasFn(arrs, lenth);
@@ -713,7 +719,7 @@ class AllsClass {
             if (query.mail !== "init") {
                 url += `?dwm=${dwm}`;
             }
-            await $methods.getRequest(url);
+            isNeedCheck && (await $methods.getRequest(url));
             fn();
         });
     }

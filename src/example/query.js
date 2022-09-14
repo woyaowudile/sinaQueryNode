@@ -4,6 +4,7 @@ const API = require("../api");
 const SQL = require("../sql");
 const $model = require("../model");
 const $methods = require("../model/methods");
+const { modelsCode } = require("../utils/code");
 
 /**
  *
@@ -397,20 +398,50 @@ module.exports = function (app, connection) {
     });
     app.get("/api/analysis", async (req, res) => {
         console.log(`-------------开始执行 /api/analysis---------------`);
-        let { days, date, dwm = "d", codes = "600,601,603,000,002", models = [] } = req.query;
+        let { days = 365, number = 20 } = req.query;
 
-        if (!resultsDownload.length) {
-            console.log("》》》 正在查询download");
-            resultsDownload = await $methods.readDownloadExcel(dwm);
-        }
-        console.log("》》 -- 查询成功 -- 《《");
-        const sendResults = {
-            code: 0,
-            index: 0,
-            message: "成功",
-            data: resultsDownload,
+        let result = {},
+            index = -1;
+        let fn = async () => {
+            let item = Object.keys(modelsCode)[++index];
+            if (item) {
+                let start = $methods.someDay(days);
+                let end = $methods.someDay(number);
+
+                console.log(`>> 正在查询 ${item}`);
+                const queryRes = await SQL.querySQL({
+                    connection,
+                    name: `${SQL.base}_${item}`,
+                    conditions: `start >= ${start} & end <= ${end}`,
+                });
+                console.log(`>>>> ${item} 查询完成`);
+                result[item] = { totals: [] };
+                // 默认使用30个
+                new Array(30).fill(1).forEach((d, i) => (result[item][`n${i}`] = 0));
+                const remarks = queryRes.data.map((v) => v.remark);
+                remarks.forEach((remark) => {
+                    const arrs = remark.replace(/(\%|\;)/g, "").split(",");
+
+                    let total = arrs.reduce((x, y, i, list) => {
+                        result[item][`n${i}`] += y / 1;
+                        return x / 1 + y / 1;
+                    }, 0);
+                    result[item].totals.push(total);
+                });
+                result[item].total = result[item].totals.reduce((x, y) => x + y, 0);
+                fn();
+            } else {
+                console.log("》》 -- 查询分析成功 -- 《《");
+                const sendResults = {
+                    code: 0,
+                    index: 0,
+                    message: "成功",
+                    data: resultsDownload,
+                };
+                res.send(getSend({ result: sendResults }));
+            }
         };
-        res.send(getSend({ result: sendResults }));
+        fn();
     });
     app.get("/api/analog", async (req, res) => {
         console.log(`-------------开始执行 /api/analog---------------`);

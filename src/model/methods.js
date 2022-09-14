@@ -487,7 +487,7 @@ class Methods {
             fn();
         });
     }
-    downloadExcel(datas, dwm, counts = {}) {
+    downloadExcel(datas, isNeedCheck, dwm, counts = {}) {
         return new Promise(async (rl, rj) => {
             let lists = [],
                 versionList = [],
@@ -539,20 +539,22 @@ class Methods {
             });
             try {
                 const excelName = `download_${dwm}.xlsx`;
-                if (versionList.length) {
-                    await this.saveVersionList(versionList);
-                }
-                if (lists.length) {
-                    // const buffer = nodeExcel.build(lists);
-                    // fs.writeFile(excelName, buffer, async (err) => {
-                    //     if (err) throw err;
-                    //     html = this.getMailHtml(counts, mail, dwm);
-                    //     sendMail(html);
-                    //     console.log("》》 -创建download-excel完成- 《《");
-                    await this.saveChooseModels2Tables(saveDatas);
-                    // });
-                } else {
-                    console.log("》》 -未创建download-excel，没有模型- 《《");
+                if (isNeedCheck) {
+                    if (versionList.length) {
+                        await this.saveVersionList(versionList);
+                    }
+                    if (lists.length) {
+                        // const buffer = nodeExcel.build(lists);
+                        // fs.writeFile(excelName, buffer, async (err) => {
+                        //     if (err) throw err;
+                        //     html = this.getMailHtml(counts, mail, dwm);
+                        //     sendMail(html);
+                        //     console.log("》》 -创建download-excel完成- 《《");
+                        await this.saveChooseModels2Tables(saveDatas);
+                        // });
+                    } else {
+                        console.log("》》 -未创建download-excel，没有模型- 《《");
+                    }
                 }
                 rl(counts);
             } catch (error) {

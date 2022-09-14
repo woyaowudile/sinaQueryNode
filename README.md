@@ -60,6 +60,14 @@
 */
 ```
 
+## <div>api/analysis</div>
+```js
+/*
+*   @param days 365
+*   @param number 20
+*   @return 返回当前日期(2022-8-19)，365天前到20天前，即 2021-8-19 到 2021-7-30
+*/
+```
 
 ## <div>api/schdule</div>
 ```js
