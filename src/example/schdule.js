@@ -32,7 +32,7 @@ module.exports = function (app, connection) {
 
             console.log(`---- 定时器： 开启每${dwmName[dwm]}更新`);
 
-            connection.query(`DELETE FROM xxxx_today WHERE dwm = ${dwm}`, async (err, result) => {
+            connection.query(`DELETE FROM xxxx_today WHERE dwm = '${dwm}'`, async (err, result) => {
                 if (err) {
                     console.log(`------ 每${dwmName[dwm]}更新：失败`, err);
                     sendMail(`这${dwmName[dwm]}（${new Date().toLocaleString()}）的任务失败了`, "（开始）");
@@ -40,13 +40,13 @@ module.exports = function (app, connection) {
                     sendMail(`这${dwmName[dwm]}（${new Date().toLocaleString()}）的任务开始了 by ${dwm}`, "（开始）");
                     let url = `http://localhost:3334/api/update?dwm=${dwm}`;
                     if (days) {
-                        url += `days=${someDay(days)}`;
+                        url += `&days=${someDay(days)}`;
                     }
                     if (start) {
-                        url += `start=${start}`;
+                        url += `&start=${start}`;
                     }
                     if (end) {
-                        url += `end=${end}`;
+                        url += `&end=${end}`;
                     }
                     await getRequest(url);
                 }

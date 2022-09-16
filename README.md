@@ -72,9 +72,12 @@
 ## <div>api/schdule</div>
 ```js
 /*
-*   @param type update|send
-*   @param dwm  默认 'd'
-*   @return 定时任务，每天更新或推送
+*   @param type   update|send 默认'update'
+*   @param start  开始日期20220909
+*   @param end    结束日期20220916
+*   @param days   当前日期往前，1为昨天，2为前天
+*   @param dwm    默认 'd'
+*   @return       定时任务，每天更新或推送
 */
 ```
 
