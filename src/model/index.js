@@ -586,7 +586,7 @@ class AllsClass {
                 codes = "600,601,603,000,002",
                 models,
                 mail = "query-before",
-                isNeedCheck = true,
+                isUpdateType = true,
             } = query;
             let resultsParams = {
                 init: true,
@@ -653,7 +653,7 @@ class AllsClass {
                         // await $methods.downloadExcel(resultsParams.downloads, dwm, mail);
                     }
                     const html = $methods.getMailHtml(resultsParams.downloads, mail, dwm);
-                    isNeedCheck && sendMail(html);
+                    isUpdateType && sendMail(html);
                     console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
                     rl(resultsParams.codes);
                     resultsParams.codes = [];
@@ -708,7 +708,7 @@ class AllsClass {
                             return res[0];
                         })
                         .filter((v) => v);
-                    await $methods.downloadExcel(results, isNeedCheck, dwm, resultsParams.downloads);
+                    await $methods.downloadExcel(results, isUpdateType, dwm, resultsParams.downloads);
                     // resultsParams.downloads = resultsParams.downloads.concat(results);
                     // resultsParams.codes = resultsParams.codes.concat(datas);
                     getDatasFn(arrs, lenth);
@@ -719,7 +719,7 @@ class AllsClass {
             if (query.mail !== "init") {
                 url += `?dwm=${dwm}`;
             }
-            isNeedCheck && (await $methods.getRequest(url));
+            isUpdateType && (await $methods.getRequest(url));
             fn();
         });
     }

@@ -487,7 +487,7 @@ class Methods {
             fn();
         });
     }
-    downloadExcel(datas, isNeedCheck, dwm, counts = {}) {
+    downloadExcel(datas, isUpdateType, dwm, counts = {}) {
         return new Promise(async (rl, rj) => {
             let lists = [],
                 versionList = [],
@@ -539,7 +539,7 @@ class Methods {
             });
             try {
                 const excelName = `download_${dwm}.xlsx`;
-                if (isNeedCheck) {
+                if (isUpdateType) {
                     if (versionList.length) {
                         await this.saveVersionList(versionList);
                     }
@@ -567,8 +567,10 @@ class Methods {
         let index = datas.findIndex((v) => this.compareTime(data[2], v.d));
         let find = datas.find((v) => this.compareTime(data[2], v.d, "="));
         let newDatas = datas.slice(index, datas.length);
-        let remark = "",
-            preD = find;
+        let preD = find,
+            max = {
+                remark: "",
+            };
         newDatas.some((v, i) => {
             // 22日内的结果
             if (i > 22) return true;
@@ -576,11 +578,16 @@ class Methods {
             if (v.c < find.o) {
                 return true;
             }
-            remark += this.zdf([preD, v]) + ",";
+            if (v.c >= max.c) {
+                max.c = v.c;
+                max.i = i;
+                max.date = v.d;
+            }
+            max.remark += this.zdf([preD, v]) + ",";
             preD = v;
         });
-        remark += ";";
-        return remark;
+        max.remark += ";";
+        return max;
     }
     saveChooseModels2Tables(datas) {
         return new Promise((rl, rj) => {
