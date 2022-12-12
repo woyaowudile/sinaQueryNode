@@ -8,729 +8,618 @@ const { modelsCode } = require("../utils/code");
 const SQL = require("../sql");
 
 class Methods {
-    constructor() {}
-    YingYang(data) {
-        if (!data) return;
-        // ying1， yang2，shizixing3
-        let { o, c } = data;
-        if (c < o) {
-            return 1;
-        } else if (c > o) {
-            return 2;
-        } else {
-            return 3;
-        }
-    }
-    getModelLengthData(data, start = 0, leng = 1, flag) {
-        // 如果数量不满足模型，则退出
-        let maxLength = start + leng > data.length ? data.length - 1 : start + leng;
-        let results = data.slice(start, maxLength);
-        return !flag ? (results.length === leng ? results : []) : results;
-    }
-    abs(data) {
-        if (!data) return;
-        let { o, c } = data;
-        return Math.abs(c - o);
-    }
-    entity(data) {
-        // 实体: (收-开)/开
-        if (!data) return;
-        let { o, c } = data;
-        let max = Math.max(o, c);
-        // 大实体：, 中实体：>0.0179-0.0310 ， 小实体：
-        return (Math.abs(c - o) / max).toFixed(4) / 1;
-    }
-    shadowLineTooLong(data, number = 0.25) {
-        let { l, h, c, o } = data;
-        let max = Math.max(c, o);
-        let shadow = h - max;
-        let entity = Math.abs(c - o);
-        // 影线占实体的1/4
-        return shadow / entity > number;
-    }
-    zf(data) {
-        let current = data[data.length - 1];
-        let pre = data[data.length - 2];
-        let result = ((current.h - current.l) / pre.c) * 100;
-        return result.toFixed(2);
-    }
-    zdf(data) {
-        // 大于 2% 中阴阳线
-        // 大于 > 5 % 大阴阳线
-        // todo ... 处理一字涨停板
-        let [pre, current] = data;
-        let result = ((current.c - pre.c) / pre.c) * 100;
-        return result.toFixed(2) / 1;
-    }
-    zs(data, start, date, compare) {
-        let datas = this.getModelLengthData(data, start, date);
-        return datas.some((level1) => {
-            let { c, o, l } = level1;
-            return l <= compare;
-        });
-    }
-    JC(data, start, arrs = [10, 60]) {
-        let list = arrs.map((v) => {
-            let before = data[start - 2][`ma${v}`];
-            let cur = data[start - 1][`ma${v}`];
-            let after = data[start][`ma${v}`];
-            return [before, cur, after];
-        });
-
-        // 金
-        if (list[0][0] < list[1][0] && list[0][2] > list[1][2]) {
-            return {
-                status: 3,
-            };
-        } else {
-            return {};
-        }
-    }
-    /**
-     * 均线多头排列
-     * @param {array} datas [{c,o,h,l...}]
-     * @param {number} start 哪一天
-     * @param {array} nlist [10,20,60...] 均线
-     * @returns Boolean
-     */
-    arrange(datas, start, nlist) {
-        let list = {};
-        nlist.forEach((v) => {
-            list[v] = datas.map((d, i) => {
-                return MA(datas, start + i, v);
-            });
-        });
-        return nlist.every((v) => {
-            let fIndex = nlist
-                .map((d) => {
-                    if (d === v) return 1;
-                    return list[v].every((item, index) => (list[v] < list[d] ? item <= list[d][index] : item >= list[d][index]));
-                })
-                .findIndex((v) => !v);
-            return fIndex === -1;
-        });
-    }
-    reserveFn(datas, start, num) {
-        const index = start - num > 0 ? start - num : 0;
-        const arrs = datas.slice(index, start) || [];
-        return arrs.reverse();
-    }
-    splitBlock(datas, names = "", dwm = "d") {
-        let index = 0,
-            arrs = [],
-            currentTime = "";
-        // 1. 将数据分成一周一个集合
-        datas.forEach((v, i) => {
-            const date = new Date(v.d);
-            let day = "";
-            let time = 1 * 24 * 60 * 60 * 1000;
-            switch (dwm) {
-                case "d":
-                    time = 1 * 24 * 60 * 60 * 1000;
-                    day = date.getTime();
-                    break;
-                case "w":
-                    time = 0;
-                    day = date.getMonth() + 1;
-                    break;
-                case "m":
-                    time = 0;
-                    day = date.getFullYear();
-                    break;
-            }
-            if (currentTime && currentTime + time !== day) {
-                // 如果不是相连的日期，表示
-                index++;
-            }
-            // 处理结果
-            currentTime = day;
-            let arr = arrs[index];
-            if (arr) {
-                arr.list.push(v);
-                arr.end = i;
-                arr.endDate = v.d;
-                arr.max = Math.max(arr.max, v.c, v.o);
-                arr.min = Math.min(arr.min, v.c, v.o);
-                arr.maxPosition = arr.list.findIndex((d) => arr.max === Math.max(d.c, d.o));
-                arr.minPosition = arr.list.findIndex((d) => arr.min === Math.min(d.c, d.o));
+    constructor() {
+        this.YingYang = (data) => {
+            if (!data) return;
+            // ying1， yang2，shizixing3
+            let { o, c } = data;
+            if (c < o) {
+                return 1;
+            } else if (c > o) {
+                return 2;
             } else {
-                arrs[index] = {
-                    max: Math.max(v.c, v.o), // 还是用v.h更好
-                    min: Math.min(v.c, v.o), // 还是用v.l更好
-                    maxPosition: 0,
-                    minPosition: 0,
-                    list: [v],
-                    start: i,
-                    startDate: v.d,
-                    end: i,
-                    endDate: v.d,
-                };
+                return 3;
             }
-        });
-        // 2. 计算每个集合的上涨、下跌、横盘的幅度
-        const [a0, ...others] = arrs;
-        others.forEach((v, i) => {
-            let pre = others[i - 1];
-            if (i === 0) {
-                pre = a0;
+        };
+        this.abs = (data) => {
+            if (!data) return;
+            let { o, c } = data;
+            return Math.abs(c - o);
+        };
+        this.max = (data) => {
+            if (!data) return;
+            let { o, c } = data;
+            return Math.max(o, c);
+        };
+        this.entity = (data) => {
+            // 实体 = (收-开)/开
+            if (!data) return;
+            // 大实体：, 中实体：>0.0179-0.0310 ， 小实体：
+            return (this.abs(data) / this.max(data)).toFixed(4) / 1;
+        };
+        this.zdf = (datas) => {
+            // 大于 2% 中阴阳线
+            // 大于 > 5 % 大阴阳线
+            // todo ... 处理一字涨停板
+            let [pre, current] = datas;
+            let result = ((current.c - pre.c) / pre.c) * 100;
+            return result.toFixed(2) / 1;
+        };
+        this.lineLong = (data, type = "") => {
+            const { h, l, c, o } = data;
+            let top = h - Math.max(c, o);
+            let bottom = Math.min(c, o) - l;
+            let body = this.abs(data);
+            return top * 2 < body && bottom * 2 < body;
+        };
+        this.trend = ({ datas, start, stretch = 60 }) => {
+            const index = start - stretch + 1;
+            const arrs = datas.slice(index, start + 1);
+            let current = datas[start];
+            if (!arrs.length) {
+                return {};
             }
-            v.preO = pre.list[pre.list.length - 1].o / 1;
-            v.zdf = this.zdf([pre.list[pre.list.length - 1], v.list[v.list.length - 1]]);
-
-            const { maxPosition, minPosition, zdf } = v;
-            if (maxPosition > minPosition) {
-                v.status = 1;
-            } else if (maxPosition < minPosition) {
-                v.status = 3;
-            } else {
-                v.status = 2;
-            }
-            if (v.status !== 2) {
-                Math.abs(zdf) < 2 && (v.status = 2);
-            }
-            // v.status = zdf > 2 ? 1 : (zdf < -2 ? 3 : 2)
-        });
-        // 3. 将相连的集合，状态相同的整合成一个
-        const newArr = [];
-        others.forEach((v, i) => {
-            const arr = newArr.slice(-1)[0];
-            if (arr && arr.status === v.status) {
-                arr.list = arr.list.concat(v.list);
-                arr.end = arr.end + v.list.length;
-                arr.endDate = arr.list.slice(-1)[0].d;
-                arr.max = Math.max(...arr.list.map((v) => Math.max(v.c, v.o)));
-                arr.min = Math.min(...arr.list.map((v) => Math.min(v.c, v.o)));
-                arr.maxPosition = arr.list.findIndex((v) => Math.max(v.c, v.o) === arr.max);
-                arr.minPosition = arr.list.findIndex((v) => Math.min(v.c, v.o) === arr.min);
-                // 因为 这个条件里是合并,所以pre应该是上上一个
-                arr.zdf = this.zdf([(newArr[newArr.length - 2] || a0).list.slice(-1)[0], v.list.slice(-1)[0]]);
-            } else {
-                newArr.push(v);
-            }
-        });
-        let result = this.qsStatus(newArr, names);
-        result.ok = result.outNames === names;
-        return result;
-    }
-    /**
-     *
-     * @param {arrays} datas
-     * @param {string} name 'xd-hp'
-     */
-    qsStatus(datas, names) {
-        let divideLine = datas.findIndex((v) => v.max === Math.max(...datas.map((d) => d.max)));
-        if (divideLine === -1) return;
-        let beforeDatas = datas.slice(0, divideLine);
-        let afterDatas = datas.slice(divideLine, datas.length);
-        let fn = function (useDatas, offset = 0) {
-            let obj = {
-                    xd: [],
-                    hp: [],
-                    sz: [],
-                    zdf: [],
-                    point: [],
-                },
-                pre = "",
-                point = 0;
-            useDatas.forEach((v, i) => {
-                point = v.max;
-                if (!pre) {
-                    pre = v;
-                } else {
-                    let index = useDatas.slice(0, i).findIndex((d) => {
-                        let current = v.list.slice(-1)[0];
-                        let zdf = Math.abs((d.preO - current.c) / d.preO) * 100;
-                        return zdf < 2;
-                    });
-                    if (index > -1) {
-                        //  index - i 是横盘
-                        obj.point[index - 1] = v.max;
-                        obj.hp.push({
-                            start: index + offset,
-                            end: i + offset,
-                            status: "hp",
-                        });
+            let fn = function (lists = [], isContainK = 5) {
+                let findObj = {},
+                    tans = [];
+                [...lists].reverse().some((v, i) => {
+                    let reIndex = lists.length - 1 - i;
+                    let max = Math.max(v.c, v.o);
+                    let maxd = v.d;
+                    let min = Math.min(v.c, v.o);
+                    let mind = v.d;
+                    // 表示current，前5根不参与. isContainK可以为number、false、undefined、null等
+                    if (reIndex < isContainK) {
+                        return true;
+                    }
+                    if (i === 0) {
+                        findObj = {
+                            max,
+                            maxd,
+                            min,
+                            mind,
+                            maxi: reIndex,
+                            mini: reIndex,
+                            glodLineArea: {},
+                            tans: [],
+                        };
                     } else {
-                        // 中间这一段是v型底\横盘还是圆弧底等
-                        let zdf = obj.zdf.reduce((x, y) => x + y, 0);
-                        if (zdf < 0) {
-                            point = v.min;
-                            obj.xd.push({
-                                start: offset,
-                                end: i + offset,
-                                status: "xd",
-                            });
-                        } else {
-                            obj.sz.push({
-                                start: offset,
-                                end: i + offset,
-                                status: "sz",
-                            });
+                        if (max >= findObj.max) {
+                            findObj.max = max;
+                            findObj.maxd = v.d;
+                            findObj.maxi = reIndex;
+                        }
+                        if (min <= findObj.min) {
+                            findObj.min = min;
+                            findObj.mind = v.d;
+                            findObj.mini = reIndex;
                         }
                     }
-                }
-                obj.point.push(point);
-                obj.zdf.push(v.zdf);
-            });
-            return obj;
-        };
-        let objBefore = fn(beforeDatas);
-        let objAfter = fn(afterDatas, divideLine);
 
-        // 3.1 例如：hp: [{1,2}, {1,4}] 合并成 [{1,4}]
-        let concatQs = function (list) {
-            let qs = {
-                pre: {},
-                list: [],
-            };
-            list.forEach((v, i) => {
-                let index = qs.list.length;
-                if (qs.pre.start <= v.start && v.start <= qs.pre.end) {
-                    qs.pre = { start: qs.pre.start, end: v.end, status: v.status };
-                    --index;
-                } else {
-                    qs.pre = v;
-                }
-                qs.list[index] = qs.pre;
-            });
-            return qs.list;
-        };
-
-        let newObj = {
-            xd: concatQs([].concat(objBefore.xd, objAfter.xd)),
-            sz: concatQs([].concat(objBefore.sz, objAfter.sz)),
-            hp: concatQs([].concat(objBefore.hp, objAfter.hp)),
-        };
-        /* **************************打补丁专用位置************************* */
-        /* **************************打补丁专用位置************************* */
-
-        // 判断是否和传入的条件一致，例： 'xd-hp'下跌后的横盘
-        let lists1 = [].concat(newObj.sz.slice(-1), newObj.hp.slice(-1), newObj.xd.slice(-1)).sort((x, y) => x.end - y.end);
-        let result = {
-            inNames: names,
-            qs: lists1.map((v) => v.status),
-        };
-        let arrs1 = names.split("-");
-        result.outNames = arrs1
-            .map((v, i) => {
-                if (!v) return;
-                let types = lists1.slice(`-${arrs1.length}`).map((d) => d.status);
-                if (v === types[i]) {
-                    return `${v}`;
-                }
-            })
-            .join("-");
-
-        // 判断整体趋势
-        let zdf = ((datas.slice(-1)[0].list.slice(-1)[0].c - datas[0].preO) / datas[0].preO) * 100;
-        if (zdf < 2) {
-            // 下跌
-            result.status = "xd";
-            // 是否N
-        } else if (zdf > 2) {
-            // 上涨
-            result.status = "zs";
-            // 是否N
-        } else {
-            // 横盘
-            result.status = "hp";
-            // v型、弧形、波浪
-        }
-        return result;
-    }
-    hp({ datas, start, current }) {
-        const max = current.c;
-        // let newCurrent = current
-        // let precent = current.zd > 9.5
-        // if (!precent) {
-        //     let exMin = Math.min(newCurrent.c, newCurrent.o)
-        //     let exMax = Math.max(newCurrent.c, newCurrent.o)
-
-        // }
-        let number = 0;
-        const lists70 = this.reserveFn(datas, start, 90);
-        const index = lists70.findIndex((v, i) => {
-            if (i < 22) {
-                // 22根k线有多少根是在当前k线的上下浮动的。比如，000540的2021-08-02
-                let min1 = Math.min(v.c, v.o);
-                min1 < current.c && number++;
-                return;
-            }
-            if (max < v.l) {
-                // 10天以上都在该模型的max值的上面，用以确定是下跌后的横盘
-                const lists10 = lists70.slice(i, i + 10);
-                return lists10.every((d) => max < d.l);
-            }
-        });
-
-        if (!(index > -1 && number > 15)) return;
-        const list = lists70.slice(0, index);
-        return {
-            data: lists70[index],
-            index: start - index,
-            // 横盘的最低价
-            min: Math.min(...list.map((v) => v.l)),
-            max: Math.max(...list.map((v) => v.h)),
-        };
-    }
-    xd({ datas, start, days = 30 }) {
-        if (!datas[start]) return;
-        const current = datas[start];
-        const lists = this.reserveFn(datas, start, days);
-        if (lists < days) return;
-        const flag = lists.every((v, i) => {
-            let min = Math.min(v.o, v.c);
-            return current.l < min;
-        });
-        return flag;
-    }
-    xiong(data) {
-        let arr = [];
-        let max = {};
-        data.forEach((level1, index1) => {
-            // 连续3根阴线
-            let [d1, d2, d3] = [level1, data[index1 + 1], data[index1 + 2]];
-            if (!(d1 && d2 && d3)) return;
-            if (this.YingYang(d1) !== 1) return;
-            if (this.YingYang(d2) !== 1) return;
-            if (this.YingYang(d3) !== 1) return;
-            // 最佳条件, 依次最大，且最大是最小的3倍以上
-            if (!(this.entity(d3) > this.entity(d2) > (this.entity(d2) > this.entity(d1)))) return;
-            if (!(this.entity(d3) > this.entity(d1) * 3)) return;
-            if (!(d3.o < d2.c || d2.o < d1.c)) return;
-            arr = [d3];
-        });
-        return arr;
-    }
-    buyDate(date, number) {
-        let dd = new Date(date);
-        dd.setDate(dd.getDate() + number);
-        let day = dd.getDay();
-        // 周末跳过
-        switch (day) {
-            case 6:
-                dd = new Date(date);
-                dd.setDate(dd.getDate() + number + 2);
-                break;
-            case 0:
-                dd = new Date(date);
-                dd.setDate(dd.getDate() + number + 1);
-                break;
-        }
-        let y = dd.getFullYear() + "";
-        let m = dd.getMonth() + 1 + "";
-        let d = dd.getDate() + "";
-
-        return y.padStart(4, 0) + "-" + m.padStart(2, 0) + "-" + d.padStart(2, 0);
-    }
-
-    someDay(days = 0, symbol = "-", current) {
-        let today = new Date();
-        let currentTime = current ? new Date(current).getTime() : today;
-        let interval = 24 * 60 * 60 * 1000 * days;
-        let after = new Date(currentTime - interval);
-        let year = after.getFullYear();
-        let month = after.getMonth() + 1 + "";
-        let date = after.getDate() + "";
-        return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
-    }
-    compareTime(dataA, dataB, equal) {
-        let atime = new Date(dataA).getTime();
-        let btime = new Date(dataB).getTime();
-        return equal === "=" ? btime === atime : btime > atime;
-    }
-    write({ keys, lists, dwm }) {
-        return new Promise((rl, rj) => {
-            try {
-                const type = keys[0].slice(0, 3);
-                const buffer = nodeExcel.build(lists);
-                fs.writeFile(`stash_${type}_${dwm}.xlsx`, buffer, (err) => {
-                    if (err) throw err;
-                    console.log(`》》 -创建${type}excel完成- 《《`);
-                    rl();
+                    tans.unshift(-Math.tan(Math.abs(current.c - v.c) / lists.length).toFixed(2));
                 });
-            } catch (error) {
-                console.log("error", error);
-            }
-        });
-    }
-    datasToExcel(codes, dwm) {
-        const _this = this;
-        return new Promise((rl, rj) => {
-            if (!codes.length) {
-                console.log("没有要存入excel的数据");
-                return;
-            }
-            let lists = [],
-                i = 0;
-            let fn = function () {
-                let arrs = codes[i];
-                if (arrs) {
-                    let keys = Object.keys(arrs);
-                    let values = Object.values(arrs);
-                    keys.forEach((d) => {
-                        let datas = arrs[d];
-                        lists.push({
-                            name: d,
-                            data: [Object.keys(datas[0]), ...datas.map((d) => Object.values(d))],
-                        });
-                    });
-                    _this.write({ dwm, lists, keys }).then(() => {
-                        lists = [];
-                        ++i;
-                        fn();
-                    });
-                } else {
-                    rl();
-                }
-            };
-            fn();
-        });
-    }
-    downloadExcel(datas, isUpdateType, dwm, counts = {}) {
-        return new Promise(async (rl, rj) => {
-            let lists = [],
-                versionList = [],
-                saveDatas = {},
-                newDatas = {},
-                html = "";
-            datas.forEach((v) => {
-                const coords = v.coords;
-                coords.forEach((d) => {
-                    const [name] = d;
-                    // 每个模型对应的 比较时间不同
-                    const days = modelsCode[name];
-                    const last = v.datas[v.datas.length - 1];
-                    const flag = this.compareTime(this.someDay(days, "-", last.d), d[2]);
-                    const data = [v.code, d[1], d[2], dwm];
-                    if (flag) {
-                        versionList.push({
-                            name,
-                            code: v.code,
-                            d: d[2],
-                            dwm,
-                        });
-                        counts[name] = (counts[name] || 0) + 1;
-                        // 表示当天的，和发的邮件保持一致
-                        data.push("Y");
-                        // 判断是否成功
+                findObj.status = findObj.mini > findObj.maxi ? 2 : 1;
+                // 黄金分割，根据near来判断，near为top(1)则从最后一个bottom -> top
+                const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
+                    let sub = Math.abs(findObj.max - findObj.min),
+                        number = 0;
+                    if (findObj.status === 1) {
+                        number = (sub / 100) * v + findObj.min;
                     } else {
-                        // 补全数组长度
-                        data.push("");
+                        number = findObj.max - (sub / 100) * v;
                     }
 
-                    data.push(d[3] + ";");
-                    if (newDatas[name]) {
-                        saveDatas[name].push(data);
-                        newDatas[name].push([v.code, d[1], d[2], d[3]]);
-                    } else {
-                        saveDatas[name] = [data];
-                        newDatas[name] = [[v.code, d[1], d[2], d[3]]];
-                    }
+                    return number.toFixed(2);
                 });
-            });
-            Object.keys(newDatas).forEach((v) => {
-                // const datas = newDatas[v];
-                const arrs = newDatas[v].sort((x, y) => new Date(y[1]).getTime() - new Date(x[1]).getTime());
-                lists.push({
-                    name: v,
-                    data: [["模型", "起始位置", "结束位置", "结果"], ...arrs],
-                });
-            });
-            try {
-                const excelName = `download_${dwm}.xlsx`;
-                if (isUpdateType) {
-                    if (versionList.length) {
-                        await this.saveVersionList(versionList);
-                    }
-                    if (lists.length) {
-                        // const buffer = nodeExcel.build(lists);
-                        // fs.writeFile(excelName, buffer, async (err) => {
-                        //     if (err) throw err;
-                        //     html = this.getMailHtml(counts, mail, dwm);
-                        //     sendMail(html);
-                        //     console.log("》》 -创建download-excel完成- 《《");
-                        await this.saveChooseModels2Tables(saveDatas);
-                        // });
-                    } else {
-                        console.log("》》 -未创建download-excel，没有模型- 《《");
-                    }
-                }
-                rl(counts);
-            } catch (error) {
-                console.log("error", error);
-                rj();
-            }
-        });
-    }
-    isSuccess(datas, data) {
-        let index = datas.findIndex((v) => this.compareTime(data[2], v.d));
-        let find = datas.find((v) => this.compareTime(data[2], v.d, "="));
-        let newDatas = datas.slice(index, datas.length);
-        let preD = find,
-            max = {
-                remark: "",
-            };
-        newDatas.some((v, i) => {
-            // 22日内的结果
-            if (i > 22) return true;
-            // 没有跌破模型的
-            if (v.c < find.o) {
-                return true;
-            }
-            if (v.c >= max.c) {
-                max.c = v.c;
-                max.i = i;
-                max.date = v.d;
-            }
-            max.remark += this.zdf([preD, v]) + ",";
-            preD = v;
-        });
-        max.remark += ";";
-        return max;
-    }
-    saveChooseModels2Tables(datas) {
-        return new Promise((rl, rj) => {
-            let index = -1;
-            const lists = Object.entries(datas);
-            let fn = async function () {
-                const item = lists[++index];
-                if (item) {
-                    // const dwm = item[1][0][3];
+                let chatOption = chart(tans, goldSplitLine, lists);
+                console.log(JSON.stringify(chatOption));
 
-                    // console.log(`>>> 开始清除${SQL.base}_${item[0]}表 ...`);
-                    // await SQL.deleteSQL({
-                    //     connection: global.customConnection,
-                    //     name: `${SQL.base}_${item[0]}`,
-                    //     conditions: `dwm='${dwm}'`,
-                    // });
+                return { findObj, tans };
 
-                    // console.log(`> ${SQL.base}_${item[0]} 已清空`);
-                    console.log(`>>> 开始存入${SQL.base}_${item[0]}表 ...`);
-                    const values = `${item[1].map((v) => {
-                        v.unshift(v[0].slice(0, 3));
-                        return `(${v.map((d) => `'${d}'`)})`;
-                    })}`;
-                    await SQL.insertSQL({
-                        connection: global.customConnection,
-                        name: `${SQL.base}_${item[0]}(type, code, start, end, dwm, today, remark)`,
-                        // values: `${item[1].map((v) => `('${v}')`)}`,
-                        values,
-                    });
-                    console.log(`>>> ${SQL.base}_${item[0]} ...已完成`);
-                    fn();
-                } else {
-                    console.log("》》 - 存入完成 - 《《");
-                    rl();
-                }
+                // 开始： 最高、最低
+                // 当前： 最高、最低
+                // 非高低点：开始、结束、最高、最低、没有
             };
-            fn();
-        });
-    }
-    saveVersionList(datas) {
-        return new Promise(async (rl, rj) => {
-            let index = -1;
-            let date = datas[0].d;
-
-            // await SQL.deleteSQL({
-            //     connection: global.customConnection,
-            //     name: `${SQL.base}_email`,
-            //     conditions: `d = '${date}'`,
-            // });
-            console.log(`>>> 开始存入${SQL.base}_email表: ${date} ...`);
-            let fn = async function () {
-                const item = datas[++index];
-                if (item) {
-                    console.log(`> email表存入中：${item.name} - ${item.code} ...`);
-                    const keys = Object.keys(item);
-                    const values = Object.values(item);
-
-                    await SQL.insertSQL({
-                        connection: global.customConnection,
-                        name: `${SQL.base}_email(${keys})`,
-                        values: `(${values.map((v) => `'${v}'`)})`,
-                    });
-                    fn();
-                } else {
-                    console.log(`》》 - 存入 -- ${SQL.base}_email表 -- 完成 - 《《`);
-                    rl();
-                }
-            };
-            fn();
-        });
-    }
-    excelToDatas(dwm, codes) {
-        return new Promise((rl, rj) => {
-            let i = 0,
-                sheets = [];
-            let fn = function () {
-                const type = codes.split(",")[i];
-                if (type) {
-                    let arrs = nodeExcel.parse(`stash_${type}_${dwm}.xlsx`) || [];
-                    sheets = sheets.concat(arrs);
-                    console.log(`》》 -读取 stash_${type}_${dwm}.xlsx 成功- 《《`);
-                    i++;
-                    fn();
-                } else {
-                    rl(sheets);
-                }
-            };
-            fn();
-        });
-    }
-    readDownloadExcel(dwm = "d") {
-        return new Promise((rl, rj) => {
-            const sheets = nodeExcel.parse(`download_${dwm}.xlsx`) || [];
-            rl(sheets);
-        });
-    }
-    getRequest(url, callback, { method = "GET", others } = {}) {
-        return new Promise((rl, rj) => {
-            request(
-                {
-                    url,
-                    method,
-                    headers: {
-                        "Content-Type": "text/json",
-                        ...others,
+            let chart = function (tans, goldSplitLine, lists) {
+                return {
+                    tooltip: {
+                        trigger: "axis",
                     },
-                },
-                async (error, response, body) => {
-                    if (!error) {
-                        if (callback) {
-                            await callback(body);
-                        }
-                        rl(body);
-                    } else {
-                        rj(error);
-                    }
-                }
-            );
-        });
-    }
-    getMailHtml(data, type, dwm) {
-        let divbox = ``;
-        for (let k in data) {
-            divbox += `<div style="display:flex"><span style="flex: 1">${k}：</span><span style="flex: 1">${data[k]}</span></div>`;
-        }
-        let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
-        return html;
-    }
-    callbackFn(datas, callback) {
-        return new Promise((rl, rj) => {
-            let index = -1;
-            let result;
-            let fn = async function () {
-                const item = datas[++index];
-                if (item) {
-                    result = (await callback) && callback(item, fn);
-                } else {
-                    rl(result);
-                }
+                    xAxis: {
+                        type: "category",
+                        data: lists.map((v, i) => i),
+                    },
+                    yAxis: [
+                        {
+                            type: "value",
+                            name: "test1",
+                        },
+                        {
+                            type: "value",
+                            name: "test2",
+                        },
+                    ],
+                    series: [
+                        {
+                            data: lists.map((v) => v.c),
+                            type: "line",
+                        },
+                        {
+                            data: tans,
+                            type: "line",
+                            yAxisIndex: 1,
+                        },
+                        // ...goldSplitLine.map((v) => {
+                        //     return {
+                        //         data: new Array(lists.length).fill(v),
+                        //         type: "line",
+                        //     };
+                        // }),
+                    ],
+                };
             };
-            fn();
-        });
+            let tanTrend = function (tans) {
+                // 使用tan的集合来判断上涨、下跌、横盘
+                let jh = {},
+                    number = 0,
+                    index = 0;
+                tans.forEach((v, i) => {
+                    if (jh[number] && jh[number].price === v) {
+                        jh[number].count++;
+                        jh[number].end++;
+                    } else {
+                        jh[++number] = { count: 1, price: v, start: i, end: i };
+                    }
+                });
+                // price是负值
+                // let prices = Object.values(jh).map((v) => v.price);
+                // let price_max = Math.max(...prices);
+                // let price_min = Math.min(...prices);
+                // let price_first = jh[1].price;
+                let count = 0;
+                Object.keys(jh).forEach((v, i) => {
+                    let current = jh[v];
+                    // 1涨2跌3中间
+                    let position = 1;
+                    if (i === 0) {
+                    } else {
+                        let pre = jh[v - 1];
+                        //    例如：-0.05 - (-0.04) < 0 表示下跌，否则上涨（如果是相减为0，就不加|减）
+                        current.price - pre.price < 0 ? count-- : current.price - pre.price !== 0 && count++;
+                    }
+                });
+                return count;
+            };
+
+            let { findObj, tans } = fn(arrs, false);
+            let status = tanTrend(tans);
+
+            let times = 0,
+                gradientLine = [];
+
+            // let splitIndex = -1;
+            // if (findObj.status === 1) {
+            //     // 上涨(1), 下跌(2)
+            //     splitIndex = findObj.maxi;
+            // } else {
+            //     splitIndex = findObj.mini;
+            // }
+            // let before = arrs.slice(0, splitIndex);
+            // let after = arrs.slice(splitIndex, arrs.length);
+
+            // // 前一个的大、小值
+            // let beforeFindobj = fn(before, false);
+
+            // 1. 分母相同，比较分子的倍率，比如 回调0.5、0.618
+            const maxWidth = arrs.length - findObj.maxi;
+            const maxHeight = findObj.max;
+            const minWidth = arrs.length - findObj.mini;
+            const minHeight = findObj.min;
+            // const denominator = maxWidth * minWidth;
+            // const moleculeMax = maxHeight * minWidth;
+            // const moleculeMin = minHeight * maxWidth;
+
+            // const maxTan = Math.tan(maxHeight / maxWidth);
+            // const minTan = Math.tan(minHeight / minWidth);
+
+            // 以max 连接current 得到的一条线，和收盘价比较
+            const gradientFn = (i) => findObj.max - (maxHeight / maxWidth) * i;
+            // const gradientFn = (i) =>  (minHeight / minWidth) * i
+
+            // 2. 根据斜率线获取到最高、最低的块集合
+            let results = { tops: { list: [], indexs: {} }, bottoms: { list: [], indexs: {} }, not: {} };
+            arrs.forEach((v, i) => {
+                // // maxi是datas的索引，使用arrs的索引需要 减去
+                // if (i < findObj.maxi - index) return;
+                // let subIndex = i + 1;
+                let subIndex = i;
+                let pre = false;
+                let listTop = "";
+                let listBot = "";
+
+                // 如果 max 在后面，则，前面所有的都算在bottom里面
+                if (i <= findObj.maxi) {
+                    listBot = v;
+                } else {
+                    // maxi应该是斜率的第一项 ， 即 findObj.maxi - subIndex
+                    const point = gradientFn(subIndex - findObj.maxi);
+                    listTop = Math.max(v.c, v.o) > point ? v : "";
+                    listBot = Math.min(v.c, v.o) < point ? v : "";
+
+                    // 存入斜率线
+                    gradientLine.push(point.toFixed(2));
+                }
+
+                if (listTop && listBot) {
+                    // 如果斜率穿过实体，则延续之前的状态，比如0-10是top，11被穿过，则0-11都是top
+                    results.not[subIndex] = listTop;
+                    return;
+                } else if (listTop) {
+                    results.tops.indexs[results.tops.index || 0] = subIndex;
+                    results.bottoms.index = subIndex;
+                } else if (listBot) {
+                    results.bottoms.indexs[results.bottoms.index || 0] = subIndex;
+                    results.tops.index = subIndex;
+                }
+                results.tops.list.push(listTop);
+                results.bottoms.list.push(listBot);
+            });
+            // 刷选出在 上/下 的 所有， 连续的没有'' 的组成一个小块。上找max，下找min，用作前高压力位，支撑位
+            let blocksMax = [],
+                blocksMin = [],
+                near = 0;
+            Object.keys(results.tops.indexs).forEach((v) => {
+                let topsIndex = v;
+                if (v !== 0) {
+                    // 除了0之外的左侧的索引都要加一，即 (左边，右边]
+                    topsIndex++;
+                }
+                // 如果左右索引的差值小于5，就忽略
+                if (results.tops.indexs[v] - v < 5) return;
+                if (near <= results.tops.indexs[v]) {
+                    near = results.tops.indexs[v];
+                    results.near = 1;
+                }
+
+                let lists = arrs.slice(topsIndex, results.tops.indexs[v] + 1).map((v) => Math.max(v.c, v.o));
+                blocksMax.push(Math.max(...lists));
+            });
+            Object.keys(results.bottoms.indexs).forEach((v) => {
+                let topsIndex = v;
+                if (v !== 0) {
+                    // 除了0之外的左侧的索引都要加一，即 (左边，右边]
+                    topsIndex++;
+                }
+                // 如果左右索引的差值小于5，就忽略
+                if (results.bottoms.indexs[v] - v < 5) return;
+                if (near <= results.bottoms.indexs[v]) {
+                    near = results.bottoms.indexs[v];
+                    results.near = 2;
+                }
+
+                let lists = arrs.slice(topsIndex, results.bottoms.indexs[v] + 1).map((v) => Math.min(v.c, v.o));
+                blocksMin.push(Math.min(...lists));
+            });
+
+            // maxi 在 mini 的后面，表示上涨（1）。下跌表示为（2）
+            if (findObj.maxi > findObj.mini) {
+                // 上涨后，回调的深度
+                times = 1 - Math.max(current.c, current.o) / maxHeight || 100;
+            } else {
+                // 下降后，反弹的深度
+                times = Math.min(current.c, current.o) / maxHeight;
+            }
+
+            // 如果current既不是max，也不是min。且times回调了100，就表示是横盘
+            // if (arrs.length - 1 === findObj.maxi || arrs.length - 1 === findObj.mini) {
+            //     // 上涨后的横盘 11， 下跌后的横盘 12
+            //     findObj.status += 10;
+            // }
+            /** 判断顶顶和底底  **/
+            if (!blocksMax.length) {
+                // 如果没有高点，则将区域内的最大值做为前高
+                blocksMax = [findObj.max];
+            }
+            // 黄金分割，根据near来判断，near为top(1)则从最后一个bottom -> top
+            const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
+                let sub = Math.abs(findObj.max - findObj.min),
+                    number = 0;
+                if (findObj.maxi > findObj.mini) {
+                    number = (sub / 100) * v + findObj.min;
+                } else {
+                    number = findObj.max - (sub / 100) * v;
+                }
+
+                return number.toFixed(2);
+            });
+            return {
+                trend_find_obj: JSON.stringify(findObj),
+                trend_near: results.near,
+                // before_kdj: this.MALine(arrs),
+                trend_glod_line: goldSplitLine,
+                trend_gradient_line: gradientLine,
+                trend_status: status,
+                trend_pressure: blocksMax,
+                trend_support: blocksMin,
+                trend_times: times.toFixed(2),
+                trend_tans: tans,
+            };
+        };
+        // 成交量的5、10线相较，应用于神2
+        this.MAVLine = (datas, ns = [5, 10]) => {
+            return datas.map((v, i) => {
+                const vs = {};
+                ns.forEach((d) => {
+                    vs[`v${d}`] = MA(datas, i, d, "v");
+                });
+                return {
+                    ...v,
+                    ...vs,
+                };
+            });
+        };
+        this.MALine = (datas, callback) => {
+            const inParams = {};
+            inParams.ma10 = datas.map((v) => v.ma10 || 0);
+            inParams.ma20 = datas.map((v) => v.ma20 || 0);
+            inParams.ma60 = datas.map((v) => v.ma60 || 0);
+            inParams.ma60.some((v, i) => {
+                if (!v) return;
+                inParams.b10 = inParams.ma10[i - 2];
+                inParams.a10 = inParams.ma10[i];
+                inParams.b60 = inParams.ma60[i - 2];
+                inParams.a60 = inParams.ma60[i];
+                if (!inParams.b10) return;
+                if (inParams.b10 > inParams.b60 && inParams.a10 < inParams.a60) {
+                    // 60在10上，下穿到10下
+                    inParams.out = "-" + i;
+                } else if (inParams.b60 > inParams.b10 && inParams.a60 < inParams.a10) {
+                    // 60在10下，上穿到10上
+                    inParams.out = "+" + i;
+                }
+                if (callback) {
+                    return callback({ ...inParams, data: datas[i], i });
+                }
+            });
+            return inParams.out || "null";
+        };
+        this.buyDate = (date, number = 0) => {
+            let dd = new Date(date);
+            dd.setDate(dd.getDate() + number);
+            let day = dd.getDay();
+            // 周末跳过
+            switch (day) {
+                case 6:
+                    dd = new Date(date);
+                    dd.setDate(dd.getDate() + number + 2);
+                    break;
+                case 0:
+                    dd = new Date(date);
+                    dd.setDate(dd.getDate() + number + 1);
+                    break;
+            }
+            let y = dd.getFullYear() + "";
+            let m = dd.getMonth() + 1 + "";
+            let d = dd.getDate() + "";
+
+            return y.padStart(4, 0) + "-" + m.padStart(2, 0) + "-" + d.padStart(2, 0);
+        };
+
+        /**
+         * 日期获取
+         * @param {number} days 距离当天的天数，昨天为1，明天为-1。默认值当天(0)
+         * @param {string} symbol 连接符，2022-10-01
+         * @param {date} current 从哪天开始算，例如：days：1，current：2022-10-01，即得到2022-09-31
+         * @returns Date
+         */
+        this.someDay = (days = 0, symbol = "-", current) => {
+            let today = new Date();
+            let currentTime = current ? new Date(current).getTime() : today;
+            let interval = 24 * 60 * 60 * 1000 * days;
+            let after = new Date(currentTime - interval);
+            let year = after.getFullYear();
+            let month = after.getMonth() + 1 + "";
+            let date = after.getDate() + "";
+            return `${year}${symbol}${month.padStart(2, 0)}${symbol}${date.padStart(2, 0)}`;
+        };
+
+        /**
+         * 将对象转换成url的query
+         * @param {Object} query  { a: 1, b: '234', c: undefined }
+         * @returns 'a=1&b=234&c=undefined&'
+         */
+        this.queryByStr = (query) => {
+            return Object.keys(query).reduce((x, y) => {
+                return x + `${y}=${query[y]}&`;
+            }, "");
+        };
+
+        this.compareTime = (dataA, dataB, equal) => {
+            let atime = new Date(dataA).getTime();
+            let btime = new Date(dataB).getTime();
+            return equal === "=" ? btime === atime : btime >= atime;
+        };
+        this.isSuccess = (datas, date, inDays = 22) => {
+            let newDatas = datas.filter((v) => this.compareTime(date, v.d)).slice(0, inDays + 1);
+            let find = newDatas[0];
+
+            let preD = find,
+                max = {
+                    max_c: "",
+                    max_d: "",
+                    max_days: "",
+                    max_zdfs: "",
+                    max_success: 0,
+                };
+
+            if (find) {
+                newDatas.slice(1, newDatas.length).some((v, i) => {
+                    // 没有跌破模型的
+                    if (v.c < find.o) {
+                        return true;
+                    }
+                    const zdf = this.zdf([preD, v]);
+                    max.max_zdfs += zdf + ",";
+                    if (v.c >= max.max_c) {
+                        max.max_c = v.c;
+                        max.max_days = i;
+                        max.max_d = v.d;
+                        max.max_success += zdf;
+                    }
+                    preD = v;
+                });
+                // todo... max_success调整为 zdf([find, preD])
+                max.max_success = max.max_success.toFixed(4) / 1;
+            }
+            return max;
+        };
+
+        this.saveModel = async (datas) => {
+            const _this = this;
+            return new Promise((rl, rj) => {
+                let index = -1,
+                    category = {};
+                const newDatas = datas
+                    .map((v) => {
+                        v.coords.forEach((d) => (d.code = v.code));
+                        return [...v.coords];
+                    })
+                    .flat(Infinity);
+                newDatas.forEach((v) => {
+                    if (category[v.name]) {
+                        category[v.name].push(v);
+                    } else {
+                        category[v.name] = [v];
+                    }
+                });
+                const arrs = Object.keys(category);
+                let fn = async function () {
+                    const keysName = arrs[++index];
+                    if (keysName) {
+                        const item = category[keysName];
+                        const values = item.map((v) => {
+                            if (_this.someDay(0) === v.end) {
+                                v.today = "Y";
+                            }
+                            return `(${Object.values(v).map((v) => `'${v}'`)})`;
+                        });
+                        const keys = Object.keys(item[0]).map((v) => v);
+                        const name = `${SQL.base}_${keysName}(${keys})`;
+                        console.log(`>>> ${item[0].type}：开始存入模型表 - start ：${keysName} - ${item.length}`);
+                        // if (item[0].type === "600026") {
+                        //     debugger;
+                        // }
+                        await SQL.insertSQL({
+                            connection: global.customConnection,
+                            name,
+                            values,
+                        });
+                        console.log(`>>> ${item[0].type}：存入模型表成功 - end ：${keysName}`);
+                        fn();
+                    } else {
+                        rl();
+                    }
+                };
+                fn();
+            });
+        };
+        /**
+         * 将当日筛选出的模型，存入表中
+         * @param {array} datas
+         * @returns Promise
+         */
+        this.saveVersionList = (datas) => {
+            return new Promise(async (rl, rj) => {
+                let index = -1;
+                let date = datas[0].d;
+
+                // await SQL.deleteSQL({
+                //     connection: global.customConnection,
+                //     name: `${SQL.base}_email`,
+                //     conditions: `d = '${date}'`,
+                // });
+                console.log(`>>> 开始存入${SQL.base}_email表: ${date} ...`);
+                let fn = async function () {
+                    const item = datas[++index];
+                    if (item) {
+                        console.log(`> email表存入中：${item.name} - ${item.code} ...`);
+                        const keys = Object.keys(item);
+                        const values = Object.values(item);
+
+                        await SQL.insertSQL({
+                            connection: global.customConnection,
+                            name: `${SQL.base}_email(${keys})`,
+                            values: `(${values.map((v) => `'${v}'`)})`,
+                        });
+                        fn();
+                    } else {
+                        console.log(`》》 - 存入 -- ${SQL.base}_email表 -- 完成 - 《《`);
+                        rl();
+                    }
+                };
+                fn();
+            });
+        };
+        /**
+         * 接口调用
+         * @param {*} url
+         * @param {*} callback
+         * @param {*} param2
+         * @returns promise
+         */
+        this.getRequest = (url, callback, { method = "GET", others } = {}) => {
+            return new Promise((rl, rj) => {
+                request(
+                    {
+                        url,
+                        method,
+                        headers: {
+                            "Content-Type": "text/json",
+                            ...others,
+                        },
+                    },
+                    async (error, response, body) => {
+                        if (!error) {
+                            if (callback) {
+                                await callback(body);
+                            }
+                            rl(body);
+                        } else {
+                            rj(error);
+                        }
+                    }
+                );
+            });
+        };
+        /**
+         * 邮件模板
+         * @param {Object} data 数据
+         * @param {*} type
+         * @param {*} dwm
+         * @returns promise
+         */
+        this.getMailHtml = (data, type, dwm) => {
+            let divbox = ``;
+            for (let k in data) {
+                divbox += `<div style="display:flex"><span style="flex: 1">${k}：</span><span style="flex: 1">${data[k]}</span></div>`;
+            }
+            let html = `<div style="text-align: center;"><h4>sina ${type}： ${dwm} 成功!</h4><div style="width:200px;display:inline-block">${divbox}</div></div>`;
+            return html;
+        };
     }
+
+    /**
+     * 1. 定时任务发送链接，打开页面后手动选择参考的日期
+     *  1.1 进入页面后，首先校验链接是否有效
+     *  1.2 有效，可选择天数(100)/日期(2022-11-02)。一般是一个趋势的成型
+     *  1.3 确定后，开启update
+     * 2. 筛选模型时，只判断模型是否成型。趋势由另一个条件判断
+     *  2.1 趋势：由指定选择的天数的起始位置，到模型生成的买点结束：
+     *      2.1.1 总结出该阶段内的ma60的浪型，即：sz/xd/hp，且中间反复横跳的阶段合并
+     *      2.1.2 该阶段的最低/最高，到买点的斜率
+     *      2.1.3 新增字段：该模型的走势，和大盘的走势结果是否相同
+     *    最终结合
+     */
 }
 
 module.exports = new Methods();

@@ -1,11 +1,11 @@
 const SQL = require("../sql");
-const $methods = require("../model/methods");
+const { someDay } = require("../model/methods");
 
 module.exports = function (app, connection) {
     app.get("/api/duplicate/remove", async (req, res) => {
         let { query } = req;
         console.log(`-------------开始执行 /api/duplicate/remove---------------`);
-        const days = query.start || $methods.someDay(query.days || 0);
+        const days = someDay(query.days || 0, "-", +query.start);
 
         const getLists = await SQL.querySQL({
             connection,
@@ -22,7 +22,7 @@ module.exports = function (app, connection) {
                     connection,
                     name: `xxxx_${type}`,
                     select: "min(id) id, code, d",
-                    conditions: `d='${days}' GROUP BY code, d HAVING COUNT(*) > 1`,
+                    conditions: `d>='${days}' GROUP BY code, d HAVING COUNT(*) > 1`,
                 });
                 const ids = query.data.map((v) => v.id);
                 if (ids.length) {

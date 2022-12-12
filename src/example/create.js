@@ -85,6 +85,9 @@ function addTables(connection, name = "") {
                 "v varchar(32) COMMENT '成交量'",
                 "type varchar(10)",
                 "zd varchar(10) COMMENT '涨幅'",
+                "ma10 varchar(16)",
+                "ma20 varchar(16)",
+                "ma60 varchar(16)",
             ];
             let arr2 = [
                 "e varchar(32) COMMENT '换手额'",
@@ -184,12 +187,30 @@ function addModelsTable(connection) {
         let arr1 = [
             "id int auto_increment PRIMARY KEY",
             "code varchar(10)",
+            "name varchar(10)",
             "type varchar(10)",
             "start varchar(10)",
             "end varchar(10)",
             "dwm varchar(10)",
             "today varchar(10)",
-            "remark varchar(255)",
+            // max_ 用以总结最终的收益
+            "max_c varchar(10) COMMENT '模型后的固定时间内(22天)最高达到的值'",
+            "max_d varchar(10) COMMENT '最高值是哪一天'",
+            "max_days varchar(10) COMMENT '最高值是模型后的第几天'",
+            "max_success varchar(10)  COMMENT '涨跌幅的总和(是否没有止损)'",
+            "max_zdfs varchar(255) COMMENT '涨跌幅的集合'",
+            // 以下为权重字段，用以预测判断用
+            "trend_find_obj varchar(500) COMMENT '参考用，判断条件的集合'",
+            "trend_status varchar(2) COMMENT '上涨(1)|下跌(2)的状态'",
+            "trend_times varchar(6) COMMENT '上涨|下跌的幅度'",
+            "trend_near varchar(2) COMMENT '离current最近的一个顶top(1)|底bottom(2)'",
+            "trend_gradient_line varchar(500) COMMENT '连接最高点到current的一条线'",
+            "trend_glod_line varchar(255) COMMENT '黄金分割线，根据near来决定是上升还是下降'",
+            "trend_tans varchar(365) COMMENT 'tan辅助线，可以判断出下降、上涨、n字等'",
+            "trend_pressure varchar(100) COMMENT '数组，压力位|前高，通常来说length越少走势越明朗清晰'",
+            "trend_support varchar(100) COMMENT '数组，支撑位|前低，通常来说length越少走势越明朗清晰'",
+            "before_kdj varchar(4) COMMENT '模型前面最近的金叉(+)|死叉(-)，有多远'",
+            "after_kdj varchar(4) COMMENT '模型后面最近的金叉(+)|死叉(-)，有多远'",
         ];
         let names = Object.keys(modelsCode).map((v) => ({ word: `${SQL.base}_${v}`, conditions: arr1 }));
         console.log(`>>>>>>>>>>>> 共${names.length}条 准备创建新表中...`);

@@ -54,8 +54,8 @@
 ## <div>api/duplicate/remove</div>
 ```js
 /*
-*   @param start 开始时间(从19920601至今)
-*   @param days  例：days=5 即 3.10 - 5 = 3.5，优先使用start
+*   @param start 开始时间(从1992-06-01至今)
+*   @param days  默认0，即当天。例：days=5 即 3.10 - 5 = 3.5，优先使用start
 *   @return 去重指定时间内的数据
 */
 ```

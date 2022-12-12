@@ -137,9 +137,9 @@ function callback(url, params) {
                                             data: hp.map((level1, index1) => {
                                                 let [d, o, c, h, l, v, e, zf, zd, zde, hs] = level1;
                                                 // let zf = (((h - l) / preClose / 1) * 100).toFixed(2);
-                                                let ma10 = MA(hp, index1, 10);
-                                                let ma20 = MA(hp, index1, 20);
-                                                let ma60 = MA(hp, index1, 60);
+                                                let ma10 = MA(hp, index1, 10, "2");
+                                                let ma20 = MA(hp, index1, 20, "2");
+                                                let ma60 = MA(hp, index1, 60, "2");
                                                 preClose = c;
                                                 return {
                                                     code,

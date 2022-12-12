@@ -2,8 +2,10 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const $methods = require("../model/methods");
-const $model = require("../model");
+const { someDay, getRequest } = require("../model/methods");
+const { quertBefore } = require("../model");
+
+const initStart = 19920601;
 
 function getContent({ codes, query }) {
     let period = query.dwm || "d";
@@ -14,16 +16,16 @@ function getContent({ codes, query }) {
      * 具体，参考 api/index/的get()
      */
     let days = query.days / 1 || 0;
-    let start = query.start || 19920601;
+    let start = query.start || initStart;
     let end = query.end;
     if (!start) {
-        start = $methods.someDay(days, "");
+        start = someDay(days, "");
     }
     if (!end) {
-        end = $methods.someDay(days, "");
+        end = someDay(days, "");
     }
     let others = {
-        days: $methods.someDay(days, "-"),
+        days: someDay(days, "-"),
     };
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -144,8 +146,8 @@ module.exports = function (app, connection) {
                     fn();
                 }, 10);
             } else {
-                await $methods.getRequest("http://localhost:3334/api/duplicate/remove");
-                await $model.quertBefore({ dwm, mail: "init" }, connection);
+                await getRequest(`http://localhost:3334/api/duplicate/remove?start=${someDay(initStart, "-")}`);
+                await quertBefore({ dwm, mail: "init" }, connection);
                 // sendMail(`sina init： ${dwm} 成功！`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }

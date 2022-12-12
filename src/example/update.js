@@ -2,8 +2,8 @@
 
 const API = require("../api");
 const SQL = require("../sql");
-const $model = require("../model");
-const $methods = require("../model/methods");
+const { quertBefore } = require("../model");
+const { someDay, getRequest, queryByStr } = require("../model/methods");
 
 function getContent({ codes, query }) {
     let period = query.dwm || "d";
@@ -12,10 +12,10 @@ function getContent({ codes, query }) {
     let end = query.end;
 
     if (!start) {
-        start = $methods.someDay(days, "");
+        start = someDay(days, "");
     }
     if (!end) {
-        end = $methods.someDay(days, "");
+        end = someDay(days, "");
     }
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
@@ -53,7 +53,7 @@ module.exports = function (app, connection) {
     app.get("/api/update", async (req, res) => {
         let { query } = req;
         let { type = "update", dwm = "d" } = query;
-        let isUpdateType = type !== "update";
+        let isUpdateType = type === "update";
 
         console.log(`-------------开始执行 /api/update?${dwm}---------------`);
         // 获取到today还没被update的code
@@ -136,8 +136,13 @@ module.exports = function (app, connection) {
                     fn(stashFailItem, 1);
                     stashFailItem = [];
                 } else {
-                    isUpdateType && (await $methods.getRequest("http://localhost:3334/api/duplicate/remove"));
-                    await $model.quertBefore({ dwm, mail: "update", isUpdateType }, connection);
+                    let url = "http://localhost:3334/api/duplicate/remove";
+                    const str = queryByStr(query);
+                    if (str) {
+                        url += `?${str}`;
+                    }
+                    isUpdateType && (await getRequest(url));
+                    await quertBefore({ dwm, mail: "update", isUpdateType }, connection);
                     // sendMail(`sina update： ${dwm} 成功！`);
                     console.log(`-------------执行完成 /api/update?${dwm}---------------`);
                 }

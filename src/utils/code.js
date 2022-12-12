@@ -16,7 +16,7 @@ const modelsCode = {
     isLahm: 1,
     isSlbw0: 1,
     isSlbw1: 1,
-    // isSlbw2: "xxx",
+    isSlbw2: 1,
     isSlbw3: 1,
     isSlbw4: 1,
     isSlqs: 1,
