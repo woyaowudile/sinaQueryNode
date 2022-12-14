@@ -50,6 +50,52 @@ function exportResults(params) {
         });
     }
 }
+function exportTrend(params, jh = []) {
+    const trend1 = trend(params);
+    const { trend_status } = trend1;
+    if (!trend_status) return {};
+    const [a0, a1, a2] = trend_status;
+    let status = trend_status;
+    if (isNaN(a2)) {
+        status = ["", "", a0 || a1];
+    }
+    const flag =
+        jh.length &&
+        jh.every((v, i) => {
+            const arrs = v.split("|");
+            if (!status[i]) return true;
+            if (!v) return true;
+            switch (arrs[0]) {
+                case "<":
+                    return status[i] < arrs[1];
+                    break;
+                case "<=":
+                    return status[i] <= arrs[1];
+                    break;
+                case "=":
+                    return (status[i] = arrs[1]);
+                    break;
+                case ">=":
+                    return status[i] >= arrs[1];
+                    break;
+                case ">":
+                    return status[i] > arrs[1];
+                    break;
+                case "hp":
+                    return -1 < status[i] < 1;
+                    break;
+                default:
+                    break;
+            }
+            // // 如果arrs只有一个， jh = ['2']
+            // if (i === arrs.length - 1) {
+            //     v <=> status.slice(-1)[0]
+            // } else {
+
+            // }
+        });
+    return { trend1, flag };
+}
 
 class AllsClass {
     constructor() {
@@ -58,19 +104,25 @@ class AllsClass {
     isKlyh({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
+        // if (d1.d === "2017-07-14" && d1.code === "600800") {
+        //     debugger;
+        //     const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", "<|0"]);
+        //     if (!flag) return;
+        // }
         if (!d1 || !d2 || !d3) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
         if (!(d3.o < d2.c && d3.c > d2.c)) return;
+        // todo ...最好 d2.o < d1.o
+        if (!(d2.o < d1.c)) return;
         if (!(entity(d1) * 2 < entity(d2))) return;
         if (!(entity(d3) * 2 < entity(d2))) return;
         if (!(lineLong(d1) && lineLong(d2) && lineLong(d3))) return;
         // 以下的固定写法，一般只需改 buy、startDay、end即可
         const buy = buyDate(d3.d, 1);
-        let trend1 = trend({ datas, start, name });
-        if (!trend1.trend_status) return;
-        if (trend1.trend_status !== 2) return;
+        const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", "<|0"]);
+        if (!flag) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
     }
 
@@ -83,6 +135,10 @@ class AllsClass {
         if (dwm !== "d") return;
         const models = datas.slice(start - 3, start + 1);
         let [d0, d1, d2, d3] = models;
+        // if (d0.d === "2017-04-24" && d0.code === "600793") {
+        //     debugger;
+        //     let trend1 = trend({ datas, start, name });
+        // }
         if (YingYang(d0) !== 2) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
@@ -95,9 +151,8 @@ class AllsClass {
         if (!(d3.c > d2.o)) return;
 
         const buy = buyDate(d3.d, 1);
-        let trend1 = trend({ datas, start, name });
-        if (!trend1.trend_status) return;
-        if (trend1.trend_status !== 1) return;
+        const { trend1, flag } = exportTrend({ datas, start, name }, ["", ">|1", ">|1"]);
+        if (!flag) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d0, end: d3.d });
     }
     isQx1({ results, datas, start, dwm, name }) {
@@ -116,8 +171,7 @@ class AllsClass {
 
         const buy = buyDate(d3.d, 1);
         let trend1 = trend({ datas, start, name });
-        if (!trend1.trend_status) return;
-        if (trend1.trend_status !== 2) return;
+        if (!(trend1.trend_status < 0)) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
     }
     isQx2({ results, datas, start, dwm, name }) {
@@ -244,11 +298,11 @@ class AllsClass {
         if (dwm !== "d") return;
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
         // if (d3.d === "2021-03-05" && d1.code === "000158") {
-        if (d1.d === "2002-02-28" && d1.code === "000012") {
-            debugger;
+        // if (d1.d === "2002-02-28" && d1.code === "000012") {
+        //     debugger;
 
-            // let trend1 = trend({ datas, start, name });
-        }
+        //     // let trend1 = trend({ datas, start, name });
+        // }
         if (!d1) return;
         if (!(d1.zd > 9.7)) return;
         if (!(entity(d2) >= 0.03)) return;
@@ -257,8 +311,8 @@ class AllsClass {
         if (!(d3.c > d2.o)) return;
 
         const buy = buyDate(d3.d, 1);
-        let trend1 = trend({ datas, start, name });
-        if (!trend1.trend_status) return;
+        const { trend1, flag } = exportTrend({ datas, start, name }, ["<|1", ">=|0", ""]);
+        if (!flag) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
     }
     isCBZ({ results, datas, start, dwm, name }) {
@@ -309,7 +363,7 @@ class AllsClass {
 
         const buy = buyDate(d3.d, 1);
         let trend1 = trend({ datas, start, name });
-        if (trend1.trend_status !== 1) return;
+        if (!(trend1.trend_status >= 0)) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
     }
     isSlbw0({ results, datas, start, dwm, name }) {
@@ -335,7 +389,7 @@ class AllsClass {
         if (dwm !== "d") return;
         const current = datas[start];
         // if (current.d === "2008-02-05" && current.code === "002001") {
-        // if (current.d === "2021-03-23" && current.code === "002174") {
+        // if (current.d === "2007-01-22" && current.code === "600019") {
         //     debugger;
         // }
         const arrs = datas.slice(start, datas.length);
@@ -365,7 +419,7 @@ class AllsClass {
         const mavs = MAVLine(datas.slice(start - 10, start + 20));
         const newMavs = mavs.filter((v) => v.d <= out.buy.d);
 
-        const flag = newMavs.some((v, i) => {
+        const someFlag = newMavs.some((v, i) => {
             if (i < 1) return;
             const bv = newMavs[i - 1];
             const av = newMavs[i + 1];
@@ -373,13 +427,13 @@ class AllsClass {
                 return true;
             }
         });
-        if (!flag) return;
+        if (!someFlag) return;
         /* *************************************************************** */
 
         const buy = buyDate(out.buy.d, 1);
 
-        let trend1 = trend({ datas, start, name });
-        if (!trend1.trend_status) return;
+        const { trend1, flag } = exportTrend({ datas, start, name }, ["<|0", "hp", ""]);
+        if (!flag) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: current, end: out.buy.d });
     }
     isSlbw3({ results, datas, start, dwm, name }) {
@@ -393,14 +447,17 @@ class AllsClass {
     isSlqs({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         const [d1, d2, d3] = datas.slice(start - 2, start + 1);
+        // if (d2.code === "600391" && d2.d === "2015-07-09") {
+        //     debugger;
+        // }
         if (!d1) return;
         if (!(d2.v > d1.v)) return;
         if (!(d3.v < d2.v)) return;
         if (!(d2.zd > 9.7 && d3.zd > 9.7)) return;
 
         const buy = buyDate(d3.d, 1);
-        let trend1 = trend({ datas, start, name });
-        if (trend1.trend_status !== 1) return;
+        const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", ">|1"]);
+        if (!flag) return;
         exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
     }
     isXlzt({ results, datas, start, dwm, name }) {
@@ -498,10 +555,10 @@ class AllsClass {
                 start,
                 end,
                 count = -1,
-                // codes = "600",
-                // models = ["isSlbw2", "isKlyh", "isYjsd", "isSlqs", 'isLzyy'],
-                models = ["isLzyy"],
-                codes = "000",
+                codes = "600",
+                models = ["isKlyh", "isYjsd", "isSlqs", "isLzyy"],
+                // models = ["isKlyh"],
+                // codes = "000",
                 // models,
                 mail = "query-before",
                 isUpdateType = true,
@@ -540,9 +597,9 @@ class AllsClass {
                     callback();
                 } else {
                     // todo......测试用
-                    if (true) {
-                        stash.types[item] = ["000012"];
-                    }
+                    // if (true) {
+                    //     stash.types[item] = ["600800"];
+                    // }
                     if (!stash.types[item]) {
                         let distinct = "distinct(code)";
                         const distinctCodes = await SQL.querySQL({
@@ -565,8 +622,7 @@ class AllsClass {
 
             let getDatasFn = async (arrs, lenth) => {
                 let name = arrs[--lenth];
-                let item = stash.types[name];
-                if (!item) {
+                if (!name) {
                     if (1 || isWirteExcel) {
                         // 生成execl
                     }
@@ -577,68 +633,83 @@ class AllsClass {
                     resultsParams.codes = [];
                     resultsParams.downloads = [];
                 } else {
-                    // 延伸60天，用作60均线的计算
-                    const stretch = 1 || 60;
-                    let conditions = `code in (${item}) and dwm='${dwm}' `;
-                    if (start && end) {
-                        conditions += ` and d >= '${start}' and d < '${end}'`;
-                    } else {
-                        // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
-                    }
-                    const res = await SQL.getTables({
-                        connection,
-                        name,
-                        conditions,
-                    });
-                    let datas = {};
-                    res.forEach((v, i) => {
-                        const { code } = v;
-                        // 将需要转成数字的取出来
-                        const newV = {
-                            d: v.d,
-                            code: v.code,
-                            zd: v.zd,
-                            // ...v,
-                            c: v.c / 1,
-                            o: v.o / 1,
-                            h: v.h / 1,
-                            l: v.l / 1,
-                            v: v.v / 1,
-                            ma10: v.ma10,
-                            ma20: v.ma20,
-                            ma60: v.ma60,
-                        };
-                        if (datas[code]) {
-                            datas[code].push(newV);
+                    let splitFn = async function (splitObj) {
+                        // let splitObj = obj
+                        let page = splitObj.page * splitObj.size;
+                        let size = ++splitObj.page * splitObj.size;
+                        let total = Math.ceil(stash.types[name].length);
+                        let pages = Math.ceil(total / splitObj.size);
+                        let item = stash.types[name].slice(page, size);
+                        console.log(`>>>  (${page} / ${total}) `);
+                        if (!item.length) {
+                            getDatasFn(arrs, lenth);
                         } else {
-                            datas[code] = [newV];
-                        }
-                    });
-
-                    console.log(`>> 开始筛选模型 - start : ${name}`);
-                    const results = Object.keys(datas)
-                        .map((v, i) => {
-                            let k = -1;
-                            datas[v].sort((x, y) => {
-                                // ++k;
-                                // if (k >= stretch) {
-                                //     y.ma10 = MA(datas[v], k, 10);
-                                //     y.ma20 = MA(datas[v], k, 20);
-                                //     y.ma60 = MA(datas[v], k, 60);
-                                // }
-                                return new Date(x.d).getTime() - new Date(y.d).getTime();
+                            // 延伸60天，用作60均线的计算
+                            const stretch = 1 || 60;
+                            let conditions = `code in (${item}) and dwm='${dwm}' `;
+                            if (start && end) {
+                                conditions += ` and d >= '${start}' and d < '${end}'`;
+                            } else {
+                                // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
+                            }
+                            const res = await SQL.getTables({
+                                connection,
+                                name,
+                                conditions,
                             });
-                            const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
-                            return res[0];
-                        })
-                        .filter((v) => v);
+                            let datas = {};
+                            res.forEach((v, i) => {
+                                const { code } = v;
+                                // 将需要转成数字的取出来
+                                const newV = {
+                                    d: v.d,
+                                    code: v.code,
+                                    zd: v.zd,
+                                    // ...v,
+                                    c: v.c / 1,
+                                    o: v.o / 1,
+                                    h: v.h / 1,
+                                    l: v.l / 1,
+                                    v: v.v / 1,
+                                    ma10: v.ma10,
+                                    ma20: v.ma20,
+                                    ma60: v.ma60,
+                                };
+                                if (datas[code]) {
+                                    datas[code].push(newV);
+                                } else {
+                                    datas[code] = [newV];
+                                }
+                            });
 
-                    console.log(`>> 模型筛选完成 - end : ${name}`);
-                    resultsParams.downloads = [] || resultsParams.downloads.concat(results);
-                    resultsParams.codes = resultsParams.codes.concat(datas);
+                            console.log(`>> 开始筛选模型 - start : ${name}`);
+                            const results = Object.keys(datas)
+                                .map((v, i) => {
+                                    let k = -1;
+                                    datas[v].sort((x, y) => {
+                                        // ++k;
+                                        // if (k >= stretch) {
+                                        //     y.ma10 = MA(datas[v], k, 10);
+                                        //     y.ma20 = MA(datas[v], k, 20);
+                                        //     y.ma60 = MA(datas[v], k, 60);
+                                        // }
+                                        return new Date(x.d).getTime() - new Date(y.d).getTime();
+                                    });
+                                    const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
+                                    return res[0];
+                                })
+                                .filter((v) => v);
 
-                    await saveModel(results);
-                    getDatasFn(arrs, lenth);
+                            console.log(`>> 模型筛选完成 - end : ${name}`);
+                            resultsParams.downloads = [] || resultsParams.downloads.concat(results);
+                            resultsParams.codes = resultsParams.codes.concat(datas);
+
+                            await saveModel(results);
+                            splitFn(splitObj);
+                            // }
+                        }
+                    };
+                    splitFn({ page: 0, size: 100 });
                 }
             };
             // 先将表清空

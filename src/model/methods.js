@@ -80,8 +80,6 @@ class Methods {
                             mind,
                             maxi: reIndex,
                             mini: reIndex,
-                            glodLineArea: {},
-                            tans: [],
                         };
                     } else {
                         if (max >= findObj.max) {
@@ -95,30 +93,30 @@ class Methods {
                             findObj.mini = reIndex;
                         }
                     }
-
-                    tans.unshift(-Math.tan(Math.abs(current.c - v.c) / lists.length).toFixed(2));
+                    // v的c在current上为正，下为负
+                    tans.unshift(Math.tan((v.c - current.c) / lists.length).toFixed(2));
+                    // if (v.c >= current.c) {
+                    // } else {
+                    //     tans.unshift(Math.tan((current.c - v.c) / lists.length).toFixed(2));
+                    // }
                 });
                 findObj.status = findObj.mini > findObj.maxi ? 2 : 1;
-                // 黄金分割，根据near来判断，near为top(1)则从最后一个bottom -> top
-                const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
-                    let sub = Math.abs(findObj.max - findObj.min),
-                        number = 0;
-                    if (findObj.status === 1) {
-                        number = (sub / 100) * v + findObj.min;
-                    } else {
-                        number = findObj.max - (sub / 100) * v;
-                    }
 
-                    return number.toFixed(2);
-                });
-                let chatOption = chart(tans, goldSplitLine, lists);
-                console.log(JSON.stringify(chatOption));
+                // const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
+                //     let sub = Math.abs(findObj.max - findObj.min),
+                //         number = 0;
+                //     if (findObj.status === 1) {
+                //         number = (sub / 100) * v + findObj.min;
+                //     } else {
+                //         number = findObj.max - (sub / 100) * v;
+                //     }
+
+                //     return number.toFixed(2);
+                // });
+                // let chatOption = chart(tans, goldSplitLine, lists);
+                // console.log(JSON.stringify(chatOption));
 
                 return { findObj, tans };
-
-                // 开始： 最高、最低
-                // 当前： 最高、最低
-                // 非高低点：开始、结束、最高、最低、没有
             };
             let chart = function (tans, goldSplitLine, lists) {
                 return {
@@ -164,162 +162,49 @@ class Methods {
                     number = 0,
                     index = 0;
                 tans.forEach((v, i) => {
-                    if (jh[number] && jh[number].price === v) {
+                    // -0.00 和 0.00，todo: 可能-0.01和0.01比较吗？
+                    let flag = jh[number] && Math.abs(jh[number].price) === Math.abs(v);
+                    if (flag) {
                         jh[number].count++;
                         jh[number].end++;
                     } else {
                         jh[++number] = { count: 1, price: v, start: i, end: i };
                     }
                 });
-                // price是负值
-                // let prices = Object.values(jh).map((v) => v.price);
-                // let price_max = Math.max(...prices);
-                // let price_min = Math.min(...prices);
-                // let price_first = jh[1].price;
-                let count = 0;
+
+                // 如果没有，count为undefined
+                let count;
                 Object.keys(jh).forEach((v, i) => {
                     let current = jh[v];
-                    // 1涨2跌3中间
-                    let position = 1;
                     if (i === 0) {
+                        // 当splitIndex = 0, jh只有一条，这时候判断 给不给count赋值
+                        jh[i + 1] && (count = 0);
                     } else {
                         let pre = jh[v - 1];
-                        //    例如：-0.05 - (-0.04) < 0 表示下跌，否则上涨（如果是相减为0，就不加|减）
-                        current.price - pre.price < 0 ? count-- : current.price - pre.price !== 0 && count++;
+                        // 有的从0.01直接到0.03, 所以count应该加|减 2次。 0.03 - 0.02 !== 0.01,所以先除后减
+                        let addNumber = Math.abs(current.price / 0.01 - pre.price / 0.01);
+                        //    例如：0.04 - 0.05 < 0 表示下跌，否则上涨（如果是相减为0，就不加|减）
+                        current.price - pre.price < 0 ? (count -= addNumber) : current.price - pre.price !== 0 && (count += addNumber);
                     }
                 });
                 return count;
             };
 
             let { findObj, tans } = fn(arrs, false);
-            let status = tanTrend(tans);
+            // let status = tanTrend(tans);
 
-            let times = 0,
-                gradientLine = [];
-
-            // let splitIndex = -1;
-            // if (findObj.status === 1) {
-            //     // 上涨(1), 下跌(2)
-            //     splitIndex = findObj.maxi;
-            // } else {
-            //     splitIndex = findObj.mini;
-            // }
-            // let before = arrs.slice(0, splitIndex);
-            // let after = arrs.slice(splitIndex, arrs.length);
-
-            // // 前一个的大、小值
-            // let beforeFindobj = fn(before, false);
-
-            // 1. 分母相同，比较分子的倍率，比如 回调0.5、0.618
-            const maxWidth = arrs.length - findObj.maxi;
-            const maxHeight = findObj.max;
-            const minWidth = arrs.length - findObj.mini;
-            const minHeight = findObj.min;
-            // const denominator = maxWidth * minWidth;
-            // const moleculeMax = maxHeight * minWidth;
-            // const moleculeMin = minHeight * maxWidth;
-
-            // const maxTan = Math.tan(maxHeight / maxWidth);
-            // const minTan = Math.tan(minHeight / minWidth);
-
-            // 以max 连接current 得到的一条线，和收盘价比较
-            const gradientFn = (i) => findObj.max - (maxHeight / maxWidth) * i;
-            // const gradientFn = (i) =>  (minHeight / minWidth) * i
-
-            // 2. 根据斜率线获取到最高、最低的块集合
-            let results = { tops: { list: [], indexs: {} }, bottoms: { list: [], indexs: {} }, not: {} };
-            arrs.forEach((v, i) => {
-                // // maxi是datas的索引，使用arrs的索引需要 减去
-                // if (i < findObj.maxi - index) return;
-                // let subIndex = i + 1;
-                let subIndex = i;
-                let pre = false;
-                let listTop = "";
-                let listBot = "";
-
-                // 如果 max 在后面，则，前面所有的都算在bottom里面
-                if (i <= findObj.maxi) {
-                    listBot = v;
-                } else {
-                    // maxi应该是斜率的第一项 ， 即 findObj.maxi - subIndex
-                    const point = gradientFn(subIndex - findObj.maxi);
-                    listTop = Math.max(v.c, v.o) > point ? v : "";
-                    listBot = Math.min(v.c, v.o) < point ? v : "";
-
-                    // 存入斜率线
-                    gradientLine.push(point.toFixed(2));
-                }
-
-                if (listTop && listBot) {
-                    // 如果斜率穿过实体，则延续之前的状态，比如0-10是top，11被穿过，则0-11都是top
-                    results.not[subIndex] = listTop;
-                    return;
-                } else if (listTop) {
-                    results.tops.indexs[results.tops.index || 0] = subIndex;
-                    results.bottoms.index = subIndex;
-                } else if (listBot) {
-                    results.bottoms.indexs[results.bottoms.index || 0] = subIndex;
-                    results.tops.index = subIndex;
-                }
-                results.tops.list.push(listTop);
-                results.bottoms.list.push(listBot);
-            });
-            // 刷选出在 上/下 的 所有， 连续的没有'' 的组成一个小块。上找max，下找min，用作前高压力位，支撑位
-            let blocksMax = [],
-                blocksMin = [],
-                near = 0;
-            Object.keys(results.tops.indexs).forEach((v) => {
-                let topsIndex = v;
-                if (v !== 0) {
-                    // 除了0之外的左侧的索引都要加一，即 (左边，右边]
-                    topsIndex++;
-                }
-                // 如果左右索引的差值小于5，就忽略
-                if (results.tops.indexs[v] - v < 5) return;
-                if (near <= results.tops.indexs[v]) {
-                    near = results.tops.indexs[v];
-                    results.near = 1;
-                }
-
-                let lists = arrs.slice(topsIndex, results.tops.indexs[v] + 1).map((v) => Math.max(v.c, v.o));
-                blocksMax.push(Math.max(...lists));
-            });
-            Object.keys(results.bottoms.indexs).forEach((v) => {
-                let topsIndex = v;
-                if (v !== 0) {
-                    // 除了0之外的左侧的索引都要加一，即 (左边，右边]
-                    topsIndex++;
-                }
-                // 如果左右索引的差值小于5，就忽略
-                if (results.bottoms.indexs[v] - v < 5) return;
-                if (near <= results.bottoms.indexs[v]) {
-                    near = results.bottoms.indexs[v];
-                    results.near = 2;
-                }
-
-                let lists = arrs.slice(topsIndex, results.bottoms.indexs[v] + 1).map((v) => Math.min(v.c, v.o));
-                blocksMin.push(Math.min(...lists));
-            });
-
-            // maxi 在 mini 的后面，表示上涨（1）。下跌表示为（2）
-            if (findObj.maxi > findObj.mini) {
-                // 上涨后，回调的深度
-                times = 1 - Math.max(current.c, current.o) / maxHeight || 100;
+            let splitIndex = -1;
+            if (findObj.status === 1) {
+                // 上涨(1), 下跌(2)
+                splitIndex = findObj.maxi > 50 ? findObj.mini : findObj.maxi;
             } else {
-                // 下降后，反弹的深度
-                times = Math.min(current.c, current.o) / maxHeight;
+                splitIndex = findObj.mini <= 10 ? findObj.maxi : findObj.mini;
             }
+            let before = tans.slice(0, splitIndex + 1);
+            let after = tans.slice(splitIndex, tans.length);
+            let beforeStatus = tanTrend(before);
+            let afterStatus = tanTrend(after);
 
-            // 如果current既不是max，也不是min。且times回调了100，就表示是横盘
-            // if (arrs.length - 1 === findObj.maxi || arrs.length - 1 === findObj.mini) {
-            //     // 上涨后的横盘 11， 下跌后的横盘 12
-            //     findObj.status += 10;
-            // }
-            /** 判断顶顶和底底  **/
-            if (!blocksMax.length) {
-                // 如果没有高点，则将区域内的最大值做为前高
-                blocksMax = [findObj.max];
-            }
             // 黄金分割，根据near来判断，near为top(1)则从最后一个bottom -> top
             const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
                 let sub = Math.abs(findObj.max - findObj.min),
@@ -334,14 +219,8 @@ class Methods {
             });
             return {
                 trend_find_obj: JSON.stringify(findObj),
-                trend_near: results.near,
-                // before_kdj: this.MALine(arrs),
                 trend_glod_line: goldSplitLine,
-                trend_gradient_line: gradientLine,
-                trend_status: status,
-                trend_pressure: blocksMax,
-                trend_support: blocksMin,
-                trend_times: times.toFixed(2),
+                trend_status: [beforeStatus, afterStatus, beforeStatus + afterStatus],
                 trend_tans: tans,
             };
         };
@@ -496,27 +375,40 @@ class Methods {
                 let fn = async function () {
                     const keysName = arrs[++index];
                     if (keysName) {
-                        const item = category[keysName];
-                        const values = item.map((v) => {
-                            if (_this.someDay(0) === v.end) {
-                                v.today = "Y";
+                        let splitFn = async function (splitObj) {
+                            let page = splitObj.page * splitObj.size;
+                            let size = ++splitObj.page * splitObj.size;
+                            let total = Math.ceil(category[keysName].length);
+                            let pages = Math.ceil(total / splitObj.size);
+                            const item = category[keysName].slice(page, size);
+                            if (item.length) {
+                                const values = item.map((v) => {
+                                    if (_this.someDay(0) === v.end) {
+                                        v.today = "Y";
+                                    }
+                                    return `(${Object.values(v).map((v) => `'${v}'`)})`;
+                                });
+                                const keys = Object.keys(item[0]).map((v) => v);
+                                const name = `${SQL.base}_${keysName}(${keys})`;
+                                console.log(`>>> ${item[0].type}：开始存入模型表 - start ：${keysName} - (${page}/${total})`);
+                                // if (item[0].type === "600026") {
+                                //     debugger;
+                                // }
+                                await SQL.insertSQL({
+                                    connection: global.customConnection,
+                                    name,
+                                    values,
+                                });
+                                console.log(`>>> ${item[0].type}：存入模型表成功 - end ：${keysName}`);
+
+                                splitFn(splitObj);
+                            } else {
+                                fn();
                             }
-                            return `(${Object.values(v).map((v) => `'${v}'`)})`;
-                        });
-                        const keys = Object.keys(item[0]).map((v) => v);
-                        const name = `${SQL.base}_${keysName}(${keys})`;
-                        console.log(`>>> ${item[0].type}：开始存入模型表 - start ：${keysName} - ${item.length}`);
-                        // if (item[0].type === "600026") {
-                        //     debugger;
-                        // }
-                        await SQL.insertSQL({
-                            connection: global.customConnection,
-                            name,
-                            values,
-                        });
-                        console.log(`>>> ${item[0].type}：存入模型表成功 - end ：${keysName}`);
-                        fn();
+                        };
+                        splitFn({ page: 0, size: 200 });
                     } else {
+                        console.log(">>> - 没有了");
                         rl();
                     }
                 };
