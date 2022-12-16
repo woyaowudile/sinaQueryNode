@@ -196,7 +196,7 @@ function setTables({ connection, name, code, type, dwm, jys }) {
 // 包含哪些元素
 function omitEles(datas, { its, dwm, type } = {}) {
     // let arr = ["zf", "ma10", "ma20", "ma60"],
-    let arr1 = ["type", "h", "l", "o", "c", "v", "zd", "ma10", "ma20", "ma60"];
+    let arr1 = ["type", "h", "l", "o", "c", "v", "zd", "zf"];
     let arr2 = ["e", "zde", "zf", "hs", "ma10", "ma20", "ma60"];
     // let arr = ["id", "d", "code", "dwm", ...(flag ? arr2 : arr1)];
 
@@ -247,7 +247,8 @@ function save({ connection, item, dwm }) {
     return new Promise(async (rl, rj) => {
         let { code, data, type } = item;
 
-        let arrs = ["", "sub"],
+        // let arrs = ["", "sub"],
+        let arrs = [""],
             index = -1;
         let varNames = omitEles(data, { dwm, type, its: arrs });
         let fn = async function () {
