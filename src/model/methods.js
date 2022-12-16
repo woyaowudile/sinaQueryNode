@@ -62,6 +62,7 @@ class Methods {
             let fn = function (lists = [], isContainK = 5) {
                 let findObj = {},
                     tans = [];
+                let times = new Array((Math.ceil(current.c) + "").length - 1).fill(0).reduce((x, y) => x + y, "1");
                 [...lists].reverse().some((v, i) => {
                     let reIndex = lists.length - 1 - i;
                     let max = Math.max(v.c, v.o);
@@ -94,7 +95,9 @@ class Methods {
                         }
                     }
                     // v的c在current上为正，下为负
-                    tans.unshift(Math.tan((v.c - current.c) / lists.length).toFixed(2));
+                    let vc = (v.c / times).toFixed(2);
+                    let cc = (current.c / times).toFixed(2);
+                    tans.unshift(Math.tan((vc - cc) / lists.length).toFixed(2));
                     // if (v.c >= current.c) {
                     // } else {
                     //     tans.unshift(Math.tan((current.c - v.c) / lists.length).toFixed(2));
@@ -187,7 +190,7 @@ class Methods {
                         current.price - pre.price < 0 ? (count -= addNumber) : current.price - pre.price !== 0 && (count += addNumber);
                     }
                 });
-                return count;
+                return count.toFixed();
             };
 
             let { findObj, tans } = fn(arrs, false);
@@ -220,7 +223,7 @@ class Methods {
             return {
                 trend_find_obj: JSON.stringify(findObj),
                 trend_glod_line: goldSplitLine,
-                trend_status: [beforeStatus, afterStatus, beforeStatus + afterStatus],
+                trend_status: [beforeStatus, afterStatus, +beforeStatus + +afterStatus],
                 trend_tans: tans,
             };
         };
@@ -238,10 +241,13 @@ class Methods {
             });
         };
         this.MALine = (datas, callback) => {
-            const inParams = {};
-            inParams.ma10 = datas.map((v) => v.ma10 || 0);
-            inParams.ma20 = datas.map((v) => v.ma20 || 0);
-            inParams.ma60 = datas.map((v) => v.ma60 || 0);
+            const inParams = { ma10: [], ma20: [], ma60: [] };
+
+            datas.forEach((v, i) => {
+                inParams.ma10[i] = v.ma10 || 0;
+                inParams.ma20[i] = v.ma60 || 0;
+                inParams.ma60[i] = v.ma20 || 0;
+            });
             inParams.ma60.some((v, i) => {
                 if (!v) return;
                 inParams.b10 = inParams.ma10[i - 2];
@@ -390,7 +396,12 @@ class Methods {
                                 });
                                 const keys = Object.keys(item[0]).map((v) => v);
                                 const name = `${SQL.base}_${keysName}(${keys})`;
-                                console.log(`>>> ${item[0].type}：开始存入模型表 - start ：${keysName} - (${page}/${total})`);
+                                if (splitObj.page === 1) {
+                                    // 此时的splitObj.page已经是1了
+                                    console.log(`>>> ${item[0].type}：开始存入模型表 - start ：${keysName}`);
+                                }
+                                console.log(`>>> ${size}/${total}`);
+
                                 // if (item[0].type === "600026") {
                                 //     debugger;
                                 // }
@@ -399,14 +410,14 @@ class Methods {
                                     name,
                                     values,
                                 });
-                                console.log(`>>> ${item[0].type}：存入模型表成功 - end ：${keysName}`);
+                                size >= total && console.log(`>>> ${item[0].type}：存入模型表成功 - end ：${keysName}`);
 
                                 splitFn(splitObj);
                             } else {
                                 fn();
                             }
                         };
-                        splitFn({ page: 0, size: 200 });
+                        splitFn({ page: 0, size: 10 });
                     } else {
                         console.log(">>> - 没有了");
                         rl();

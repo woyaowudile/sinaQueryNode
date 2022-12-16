@@ -3,22 +3,9 @@
 const _ = require("lodash");
 const { MA } = require("../api/methods");
 const SQL = require("../sql");
-const {
-    isSuccess,
-    YingYang,
-    entity,
-    zdf,
-    getMailHtml,
-    someDay,
-    getRequest,
-    trend,
-    buyDate,
-    saveModel,
-    lineLong,
-    MAVLine,
-    MALine,
-} = require("./methods");
+const { isSuccess, YingYang, entity, getMailHtml, someDay, getRequest, trend, buyDate, saveModel, lineLong, MAVLine, MALine } = require("./methods");
 const { sendMail } = require("../utils/sendEmail");
+const { omit } = require("lodash");
 
 let count = 0;
 
@@ -193,15 +180,24 @@ class AllsClass {
     }
     isFkwz({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
-        let [d1, d2, d3] = models;
+        let [d1, d2, d3] = datas.slice(start - 2, start + 1);
         if (!d1) return;
+        // if (d3.d === "2022-12-01") {
+        //     debugger;
+        // }
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
-        if (entity(d2) >= 0.02) return;
         if (!(d3.o > d2.c && d3.c > d2.o)) return;
+        // 中、大阴线跌幅4%+，振幅5%+
+        if (!(d2.zd < -4 && (((d2.h - d2.l) / d1.c) * 100).toFixed(2) > 5)) return;
+        // 次日大阳线涨幅5%+
+        if (!(d3.zd > 5)) return;
 
-        let coords = ["isFkwz", d2.d, d3.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d3 });
+        // 以下的固定写法，一般只需改 buy、startDay、end即可
+        const buy = buyDate(d3.d, 1);
+        const { trend1, flag } = exportTrend({ datas, start, name }, [">|-1", "", ">|1"]);
+        if (!flag) return;
+        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
     }
     isYydl({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
@@ -298,7 +294,7 @@ class AllsClass {
         if (dwm !== "d") return;
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
         // if (d3.d === "2021-03-05" && d1.code === "000158") {
-        // if (d1.d === "2002-02-28" && d1.code === "000012") {
+        // if (d1.d === "2021-05-20" && d1.code === "600702") {
         //     debugger;
 
         //     // let trend1 = trend({ datas, start, name });
@@ -555,9 +551,9 @@ class AllsClass {
                 start,
                 end,
                 count = -1,
-                codes = "600",
-                models = ["isKlyh", "isYjsd", "isSlqs", "isLzyy"],
-                // models = ["isKlyh"],
+                codes = "002",
+                // models = ["isKlyh", "isYjsd", "isSlqs", "isLzyy"],
+                models = ["isFkwz"],
                 // codes = "000",
                 // models,
                 mail = "query-before",
@@ -598,7 +594,7 @@ class AllsClass {
                 } else {
                     // todo......测试用
                     // if (true) {
-                    //     stash.types[item] = ["600800"];
+                    //     stash.types[item] = ["002462"];
                     // }
                     if (!stash.types[item]) {
                         let distinct = "distinct(code)";
@@ -640,74 +636,69 @@ class AllsClass {
                         let total = Math.ceil(stash.types[name].length);
                         let pages = Math.ceil(total / splitObj.size);
                         let item = stash.types[name].slice(page, size);
-                        console.log(`>>>  (${page} / ${total}) `);
+
                         if (!item.length) {
                             getDatasFn(arrs, lenth);
-                        } else {
-                            // 延伸60天，用作60均线的计算
-                            const stretch = 1 || 60;
-                            let conditions = `code in (${item}) and dwm='${dwm}' `;
-                            if (start && end) {
-                                conditions += ` and d >= '${start}' and d < '${end}'`;
-                            } else {
-                                // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
-                            }
-                            const res = await SQL.getTables({
-                                connection,
-                                name,
-                                conditions,
-                            });
-                            let datas = {};
-                            res.forEach((v, i) => {
-                                const { code } = v;
-                                // 将需要转成数字的取出来
-                                const newV = {
-                                    d: v.d,
-                                    code: v.code,
-                                    zd: v.zd,
-                                    // ...v,
-                                    c: v.c / 1,
-                                    o: v.o / 1,
-                                    h: v.h / 1,
-                                    l: v.l / 1,
-                                    v: v.v / 1,
-                                    ma10: v.ma10,
-                                    ma20: v.ma20,
-                                    ma60: v.ma60,
-                                };
-                                if (datas[code]) {
-                                    datas[code].push(newV);
-                                } else {
-                                    datas[code] = [newV];
-                                }
-                            });
-
-                            console.log(`>> 开始筛选模型 - start : ${name}`);
-                            const results = Object.keys(datas)
-                                .map((v, i) => {
-                                    let k = -1;
-                                    datas[v].sort((x, y) => {
-                                        // ++k;
-                                        // if (k >= stretch) {
-                                        //     y.ma10 = MA(datas[v], k, 10);
-                                        //     y.ma20 = MA(datas[v], k, 20);
-                                        //     y.ma60 = MA(datas[v], k, 60);
-                                        // }
-                                        return new Date(x.d).getTime() - new Date(y.d).getTime();
-                                    });
-                                    const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
-                                    return res[0];
-                                })
-                                .filter((v) => v);
-
-                            console.log(`>> 模型筛选完成 - end : ${name}`);
-                            resultsParams.downloads = [] || resultsParams.downloads.concat(results);
-                            resultsParams.codes = resultsParams.codes.concat(datas);
-
-                            await saveModel(results);
-                            splitFn(splitObj);
-                            // }
+                            return;
                         }
+                        console.log(`>>>  (${size} / ${total}) `);
+                        // 延伸60天，用作60均线的计算
+                        const stretch = 1 || 60;
+                        let conditions = `code in (${item}) and dwm='${dwm}' `;
+                        if (start && end) {
+                            conditions += ` and d >= '${start}' and d < '${end}'`;
+                        } else {
+                            // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
+                        }
+                        // 正向排序
+                        conditions += ` ORDER BY d ASC`;
+                        const date1 = new Date().getTime();
+                        const res = await SQL.getTables({
+                            connection,
+                            name,
+                            conditions,
+                        });
+                        const date2 = new Date().getTime();
+                        let datas = {};
+                        res.forEach((v, i) => {
+                            const { code } = v;
+                            // 将需要转成数字的取出来
+                            const newV = omit(v, ["id", "sub_id", "type"]);
+                            if (datas[code]) {
+                                datas[code].push(newV);
+                            } else {
+                                datas[code] = [newV];
+                            }
+                        });
+                        const date3 = new Date().getTime();
+
+                        console.log(`>> 开始筛选模型 - start : ${name}`);
+                        const results = Object.keys(datas)
+                            .map((v, i) => {
+                                let k = -1;
+                                datas[v].sort((x, y) => {
+                                    ++k;
+                                    if (k >= stretch) {
+                                        y.ma10 = MA(datas[v], k, 10);
+                                        y.ma20 = MA(datas[v], k, 20);
+                                        y.ma60 = MA(datas[v], k, 60);
+                                    }
+                                    // return new Date(x.d).getTime() - new Date(y.d).getTime();
+                                });
+                                const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
+                                return res[0];
+                            })
+                            .filter((v) => v);
+
+                        const date4 = new Date().getTime();
+                        console.log(date2 - date1, date3 - date2, date4 - date3);
+                        console.log(`>> 模型筛选完成 - end : ${name}`);
+                        resultsParams.downloads = [] || resultsParams.downloads.concat(results);
+                        resultsParams.codes = resultsParams.codes.concat(datas);
+
+                        await saveModel(results);
+                        splitFn(splitObj);
+                        // }
                     };
                     splitFn({ page: 0, size: 100 });
                 }
@@ -730,7 +721,7 @@ class AllsClass {
             { name: "isYjsd", status: 2, dwm: "d" },
             { name: "isQx1", status: 1, dwm: "d" },
             { name: "isQx2", status: 1, dwm: "d" },
-            // { name: "isFkwz", status: 1, dwm: 'd' },
+            { name: "isFkwz", status: 2, dwm: "d" },
             { name: "isCsfr", status: 1, dwm: "d" },
             // { name: "isLahm", status: 2, dwm: 'd' },
             { name: "isSlbw0", status: 1, dwm: "d" },
@@ -757,13 +748,10 @@ class AllsClass {
         MALine(datas, (MAParams) => {
             const { data, i } = MAParams;
             let { zd, d, code, c } = data;
-            // if (d === "2021-03-23" && code === "002174") {
-            //     debugger;
-            // } else {
-            //     return;
-            // }
-            let now = new Date(d).getTime();
-            if (now < current) return;
+            if (date) {
+                let now = new Date(d).getTime();
+                if (now < current) return;
+            }
             /********************************** */
             if (c < 0) return;
             if (zd > 13) return;
@@ -780,11 +768,13 @@ class AllsClass {
                     models.forEach((v) => v.status === 1 && this[v.name]({ ...params, name: v.name }));
                     break;
                 case 2:
-                    if (zd > 9.5) {
-                        models.forEach((v) => v.zd && this[v.name]({ ...params, name: v.name }));
-                    } else {
-                        models.forEach((v) => v.status === 2 && this[v.name]({ ...params, name: v.name }));
-                    }
+                    models.forEach((v) => {
+                        if (v.zd) {
+                            zd > 9.5 && this[v.name]({ ...params, name: v.name });
+                        } else if (v.status === 2) {
+                            this[v.name]({ ...params, name: v.name });
+                        }
+                    });
                     break;
                 default:
                     models.forEach((v) => v.status === 3 && this[v.name]({ ...params, name: v.name }));

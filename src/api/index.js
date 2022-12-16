@@ -346,7 +346,7 @@ module.exports = {
                 },
                 (error, response, body) => {
                     const current = (year + month + day) / 1;
-                    console.log("body", body);
+                    // console.log("body", body);
                     const res = JSON.parse(body);
                     if (res.code === 0) {
                         const lists = res.data.list,

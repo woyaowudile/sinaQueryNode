@@ -80,6 +80,12 @@
 *   @return       定时任务，每天更新或推送
 */
 ```
+## <div>api/test</div>
+```js
+/*
+*   @return       update?type=test
+*/
+```
 
 
 ## <div>api/clear</div>
@@ -98,3 +104,7 @@
 *   @return 清除数据表指定时间段的数据
 */
 ```
+
+
+## 多账号使用
+> git push git@woyaowudile:woyaowudile/sinaQueryNode master
