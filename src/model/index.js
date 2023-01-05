@@ -3,21 +3,55 @@
 const _ = require("lodash");
 const { MA } = require("../api/methods");
 const SQL = require("../sql");
-const { isSuccess, YingYang, entity, getMailHtml, someDay, getRequest, trend, buyDate, saveModel, lineLong, MAVLine, MALine } = require("./methods");
+const {
+    isSuccess,
+    YingYang,
+    entity,
+    getMailHtml,
+    someDay,
+    getRequest,
+    trend,
+    buyDate,
+    saveModel,
+    lineLong,
+    MAVLine,
+    MALine,
+    upVolume,
+    downVolume,
+    xiong,
+} = require("./methods");
 const { sendMail } = require("../utils/sendEmail");
 const { omit } = require("lodash");
 
-let count = 0;
+/* ****************************************************************** */
+const modelGlobalParams = {
+    model: ["isFkwz"],
+    code: "000011",
+    // type: "000, 002, 600, 601, 603",
+    type: "000",
+    d: "1993-02-15",
+    test: true, // 为false时，如果全量筛选模型，还需设置model = [], code = ''
+};
+function testFn(data) {
+    const { code, d, test } = modelGlobalParams;
+    if (data && data instanceof Object) {
+        return test && data.d === d && data.code === code;
+    } else {
+        return modelGlobalParams;
+    }
+}
+/* ****************************************************************** */
 
 function exportResults(params) {
     const { results, datas, dwm, startDay, end, buy } = params;
     const { d, code } = startDay;
     let index = results.findIndex((v) => v.code === code);
     /* *************************************************************** */
-    let maxRes = isSuccess(datas, end);
+    let maxRes = isSuccess({ datas, start: startDay.d, end, isLowSL: true });
+    maxRes.before_kdj = params.MAParams.out;
     let res = {
         type: code.slice(0, 3),
-        ..._.omit(params, ["datas", "results", "startDay", "buy"]),
+        ..._.omit(params, ["datas", "results", "startDay", "buy", "MAParams", "start"]),
         start: d,
         today: "",
         ...maxRes,
@@ -37,7 +71,7 @@ function exportResults(params) {
         });
     }
 }
-function exportTrend(params, jh = []) {
+function exportTrend(params, jh = [], isOut) {
     const trend1 = trend(params);
     const { trend_status } = trend1;
     if (!trend_status) return {};
@@ -81,6 +115,11 @@ function exportTrend(params, jh = []) {
 
             // }
         });
+    if (isOut) {
+        const { MAParams } = params;
+        const { out } = MAParams;
+        if (!(out && out.indexOf(`${isOut}`) > -1)) return {};
+    }
     return { trend1, flag };
 }
 
@@ -93,10 +132,9 @@ class AllsClass {
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
         // if (d1.d === "2017-07-14" && d1.code === "600800") {
         //     debugger;
-        //     const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", "<|0"]);
+        //     const { trend1, flag } = exportTrend(arguments[0], ["", "", "<|0"]);
         //     if (!flag) return;
         // }
-        if (!d1 || !d2 || !d3) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
@@ -108,9 +146,9 @@ class AllsClass {
         if (!(lineLong(d1) && lineLong(d2) && lineLong(d3))) return;
         // 以下的固定写法，一般只需改 buy、startDay、end即可
         const buy = buyDate(d3.d, 1);
-        const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", "<|0"]);
+        const { trend1, flag } = exportTrend(arguments[0], ["", "", "<|0"]);
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d3.d });
     }
 
     isYjsd({ results, datas, start, dwm, name }) {
@@ -120,16 +158,14 @@ class AllsClass {
          * 4要比前3个实体都高
          */
         if (dwm !== "d") return;
-        const models = datas.slice(start - 3, start + 1);
-        let [d0, d1, d2, d3] = models;
-        // if (d0.d === "2017-04-24" && d0.code === "600793") {
-        //     debugger;
-        //     let trend1 = trend({ datas, start, name });
-        // }
+        const [d0, d1, d2, d3] = datas.slice(start - 3, start + 1);
         if (YingYang(d0) !== 2) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
+        if (testFn(d3)) {
+            debugger;
+        }
         if (!(entity(d0) > entity(d3))) return;
         if (!(d1.c > d0.o && d2.c > d0.o && d3.o > d0.o)) return;
         // 加分
@@ -138,14 +174,14 @@ class AllsClass {
         if (!(d3.c > d2.o)) return;
 
         const buy = buyDate(d3.d, 1);
-        const { trend1, flag } = exportTrend({ datas, start, name }, ["", ">|1", ">|1"]);
+        const { trend1, flag } = exportTrend(arguments[0], ["", ">|1", ">|1"]);
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d0, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d0, end: d3.d });
     }
     isQx1({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 七星中是否可以存在 十字星(即开盘价 === 收盘价)
-        let [d1, d2, d3, d4, d5, d6, d7] = models;
+        let [d1, d2, d3, d4, d5, d6, d7] = datas.slice(start - 6, start + 1);
         if (!d1) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
@@ -154,17 +190,20 @@ class AllsClass {
         if (YingYang(d5) !== 2) return;
         if (YingYang(d6) !== 1) return;
         if (YingYang(d7) !== 2) return;
-        // if (!slowDown(data, start)) return
 
-        const buy = buyDate(d3.d, 1);
-        let trend1 = trend({ datas, start, name });
-        if (!(trend1.trend_status < 0)) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
+        if (testFn(d7)) {
+            debugger;
+        }
+
+        const buy = buyDate(d7.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "", "<|1"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d7.d });
     }
     isQx2({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 七星中是否可以存在 十字星(即开盘价 === 收盘价)
-        let [d1, d2, d3, d4, d5, d6, d7] = models;
+        let [d1, d2, d3, d4, d5, d6, d7] = datas.slice(start - 6, start + 1);
         if (!d1) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
@@ -174,36 +213,40 @@ class AllsClass {
         if (YingYang(d6) !== 1) return;
         if (YingYang(d7) !== 2) return;
 
-        // return [d1, d2, d3, d4, d5, d6, d7];
-        let coords = ["isQx2", d1.d, d7.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d7 });
+        if (testFn(d7)) {
+            debugger;
+        }
+
+        const buy = buyDate(d7.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "", "<|1"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d7.d });
     }
     isFkwz({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
-        if (!d1) return;
-        // if (d3.d === "2022-12-01") {
-        //     debugger;
-        // }
+
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
+        if (testFn(d3)) {
+            debugger;
+        }
         if (!(d3.o > d2.c && d3.c > d2.o)) return;
         // 中、大阴线跌幅4%+，振幅5%+
-        if (!(d2.zd < -4 && (((d2.h - d2.l) / d1.c) * 100).toFixed(2) > 5)) return;
+        if (!(d2.zd < -4 || (((d2.h - d2.l) / d1.c) * 100).toFixed(2) > 5)) return;
         // 次日大阳线涨幅5%+
         if (!(d3.zd > 5)) return;
 
         // 以下的固定写法，一般只需改 buy、startDay、end即可
         const buy = buyDate(d3.d, 1);
-        const { trend1, flag } = exportTrend({ datas, start, name }, [">|-1", "", ">|1"]);
+        const { trend1, flag } = exportTrend(arguments[0], [">|-1", "", ">=|1"], "+");
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d3.d });
     }
     isYydl({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 因为d5后的某一天要是阳线，但不确定是哪一天
-        let [d1, d2, d3, d4, d5] = models;
-        if (!d1) return;
+        let [d1, d2, d3, d4, d5] = datas.slice(start - 4, start + 1);
         if (YingYang(d1) !== 2) return;
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 1) return;
@@ -222,49 +265,51 @@ class AllsClass {
         if (d2.l < d3.l) return;
         if (d3.l < d4.l) return;
 
-        let find = models.find((val, index) => {
-            if (index >= 5) {
-                return YingYang(val) === 2 && val.c > d5.c;
-            }
-        });
+        let find = datas.slice(start + 1).find((val, index) => YingYang(val) === 2 && val.c > d5.c);
         if (!find) return;
-        let coords = ["isYydl", d1.d, find.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: find });
+
+        const buy = buyDate(find.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "<=|2", ">=|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: find.d });
     }
     isCsfr({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
-        let [d1, d2] = models;
-        if (!d1) return;
+        let [d1, d2] = datas.slice(start - 1, start + 1);
+
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 2) return;
+        if (testFn(d2)) {
+            debugger;
+        }
         if (!(d2.h > d1.h && d2.l > d1.l && d2.c > d1.o)) return;
 
-        let coords = ["isCsfr", d1.d, d2.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: d2 });
+        // 以下的固定写法，一般只需改 buy、startDay、end即可
+        const buy = buyDate(d2.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", ">=|-1", ""]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d2.d });
     }
     isGsdn({ results, datas, start, dwm, name }) {
         // 1. 上升趋势中，
         // 2. 是阶段的顶点不可买，如果有缺口可以
         // 判断条件：慢速均线向上
-        if (dwm !== "d") return;
-        let [d1, d2, d3, d4, d5, d6] = models;
+        let [d1, d2, d3, d4, d5] = datas.slice(start - 1, start + 4);
         if (!d1) return;
-        if (YingYang(d3) !== 2) return;
-        // 大于2%算是中阳线
-        if (!(zdf([d2, d3]) > zdf([d1, d2]))) return;
-        if (!(zdf([d2, d3]) > 2)) return;
-        if (!(d4.c > d3.o && d5.c > d3.o && d6.c > d3.o)) return;
-        if (!(d2.v < d3.v && d4.v < d3.v && d5.v < d3.v && d6.v < d3.v)) return;
+        if (YingYang(d2) !== 2) return;
+        if (!upVolume([d1, d2])) return;
+        if (!(d3.c > d2.o && d4.c > d2.o && d5.c > d2.o)) return;
+        if (!(downVolume([d2, d3]) && downVolume([d3, d4]) && downVolume([d4, d5]))) return;
 
-        let coords = ["isGsdn", d3.d, d6.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d3, buyDate: d6 });
+        const buy = buyDate(d5.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["", "hp", ">|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d5.d });
     }
     isDy({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 盈利： 17-20%
-        let [d1, d2, d3, d4, d5, d6, d7] = models;
-        if (!d1) return;
-
+        let [d1, d2, d3, d4, d5, d6, d7] = datas.slice(start - 6, start + 1);
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 2) return;
         if (YingYang(d3) !== 2) return;
@@ -272,44 +317,55 @@ class AllsClass {
         if (YingYang(d5) !== 2) return;
         if (YingYang(d6) !== 1) return;
         if (YingYang(d7) !== 2) return;
-        if (!(entity(d6) < 0.0236)) return;
+        if (testFn(d7)) {
+            debugger;
+        }
+        // if (!(entity(d6) < 0.005)) return;
+        if (!(entity(d6) < entity(d7))) return;
         if (!(d7.c > d2.c && d7.c > d3.c && d7.c > d4.c && d7.c > d5.c && d7.c > d6.o)) return;
 
-        let coords = ["isDy", d2.d, d7.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d7 });
+        // 以下的固定写法，一般只需改 buy、startDay、end即可
+        const buy = buyDate(d7.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", ">=|0", ">=|-1"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d7.d });
     }
     isFhlz({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 盈利： 10%+
-        let [d1, d2, d3, d4] = models;
+        let [d1, d2, d3, d4] = datas.slice(start - 1, start + 3);
         if (!d1) return;
-        if (!(zdf([d1, d2]) > 9.7)) return;
-        if (!(d1.v < d2.v && d3.v < d2.v)) return;
+        if (!d4) return;
+        if (testFn(d2)) {
+            debugger;
+        }
+        if (!upVolume([d1, d2])) return;
+        if (!downVolume([d2, d3])) return;
         if (!(d3.c < d2.c && d4.c > d2.c)) return;
 
-        let coords = ["isFhlz", d2.d, d4.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
+        // 以下的固定写法，一般只需改 buy、startDay、end即可
+        const buy = buyDate(d4.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["", "", ">|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d4.d });
     }
     isLzyy({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         let [d1, d2, d3] = datas.slice(start - 2, start + 1);
-        // if (d3.d === "2021-03-05" && d1.code === "000158") {
-        // if (d1.d === "2021-05-20" && d1.code === "600702") {
-        //     debugger;
-
-        //     // let trend1 = trend({ datas, start, name });
-        // }
         if (!d1) return;
-        if (!(d1.zd > 9.7)) return;
-        if (!(entity(d2) >= 0.03)) return;
         if (YingYang(d2) !== 1) return;
         if (YingYang(d3) !== 2) return;
+
+        if (testFn(d1)) {
+            debugger;
+        }
+        if (!(entity(d2) >= 0.03)) return;
         if (!(d3.c > d2.o)) return;
 
         const buy = buyDate(d3.d, 1);
-        const { trend1, flag } = exportTrend({ datas, start, name }, ["<|1", ">=|0", ""]);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|1", ">=|0", ""]);
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d3.d });
     }
     isCBZ({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
@@ -343,7 +399,22 @@ class AllsClass {
     }
     isLahm({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
-        exportResults({ results, models, datas, dwm, coords, startDay: result, buyDate: val });
+
+        const [d1, d2] = datas.slice(start - 1, start + 1);
+        if (YingYang(d1) !== 1) return;
+        if (YingYang(d2) !== 2) return;
+        if (testFn(d2)) {
+            debugger;
+        }
+        const models = datas.slice(start - 10, start);
+        if (!xiong(models, true)) return;
+        if (!(d2.c > d1.o)) return;
+        if (!(d2.l >= d1.l)) return;
+
+        const buy = buyDate(d1.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "", "<|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d2.d });
     }
     isSbg3({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
@@ -360,34 +431,74 @@ class AllsClass {
         const buy = buyDate(d3.d, 1);
         let trend1 = trend({ datas, start, name });
         if (!(trend1.trend_status >= 0)) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d3.d });
     }
     isSlbw0({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
 
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
+        const models1 = datas.slice(start - 10, start);
+        const [d0, d1, d2] = datas.slice(start - 1, start + 2);
+        if (!d0) return;
+        if (YingYang(d1) !== 1) return;
+        if (YingYang(d2) !== 2) return;
+        if (testFn(d1)) {
+            debugger;
+        }
+        if (!(d1.l < Math.min(...models1.map((v) => v.l)))) return;
+        if (!xiong(models1)) return;
+        if (!(entity(d0) < 0.01)) return;
+        if (!(d1.c < d0.c)) return;
+        if (!(d2.c > d1.c)) return;
+        if (!(d2.l >= d1.l)) return;
+
+        const buy = buyDate(d2.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "<=|0", ""]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d0, end: d2.d });
     }
     isSlbw1({ results, datas, start, dwm, name }) {
         // 20%
         if (dwm !== "d") return;
-        const current = datas[start];
+        const d1 = datas[start];
+        if (!d1) return;
+        if (testFn(d1)) {
+            debugger;
+        }
         const arrs = datas.slice(start, datas.length);
+        // 找到回到箱体内的哪天
+        let find = arrs.find((v, i) => d1.c > v.c && i > 5);
+        if (!find) return;
+        // 回到箱体后，找到突破的点(买点)
+        let count = 0;
+        find = arrs.find((v, i) => {
+            // 突破要放量
+            let flag = v.d > find.d && v.c > d1.c && upVolume([arrs[i - 1], v]);
 
-        // const flag = arrs.some((v, i)=> {
-        //     if (v.c < current.o) return
-
-        // })
-        // if (!flag) return
-        const {} = current;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d1, end: d3.d });
+            // 回到箱体内的连续个数不能小于一周（5）
+            if (v.c <= d1.c) {
+                count++;
+            } else if (!flag) {
+                // 如果不连续，且不是突破就置0
+                count = 0;
+            }
+            return flag && count >= 5;
+        });
+        if (!find) return;
+        // 不能跌破箱体
+        const filters = arrs.filter((v) => v.d < find.d);
+        if (filters.some((v) => v.o < d1.o)) return;
+        const buy = buyDate(find.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "hp", ""]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: find.d });
     }
     isSlbw2({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         const current = datas[start];
-        // if (current.d === "2008-02-05" && current.code === "002001") {
-        // if (current.d === "2007-01-22" && current.code === "600019") {
-        //     debugger;
-        // }
+
+        if (testFn(current)) {
+            debugger;
+        }
         const arrs = datas.slice(start, datas.length);
         const out = {
             max: current,
@@ -428,33 +539,72 @@ class AllsClass {
 
         const buy = buyDate(out.buy.d, 1);
 
-        const { trend1, flag } = exportTrend({ datas, start, name }, ["<|0", "hp", ""]);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "hp", ""]);
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: current, end: out.buy.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: current, end: out.buy.d });
     }
     isSlbw3({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: d4 });
+        const [d1, d2, d3] = datas.slice(start, start + 3);
+        if (YingYang(d1) !== 2) return;
+        if (YingYang(d2) !== 2) return;
+        if (YingYang(d3) !== 2) return;
+        if (testFn(d1)) {
+            debugger;
+        }
+        if (!upVolume([d1, d2])) return;
+        if (!(d2.zf > 5)) return;
+        if (!downVolume([d2, d3])) return;
+        if (!(entity(d3) < 0.01)) return;
+
+        const buy = buyDate(d3.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "hp", ""]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: d3.d });
     }
     isSlbw4({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
-        exportResults({ results, models, datas, dwm, coords, startDay: d2, buyDate: find });
+
+        let [d1, d2] = datas.slice(start - 1, start + 1);
+        if (!d1) return;
+        if (testFn(d2)) {
+            debugger;
+        }
+        // 涨幅5左右的放量中阳线
+        if (!upVolume([d1, d2])) return;
+        if (!(d2.zd > 4 && entity(d2) < 0.05 && entity(d2) > 0.005)) return;
+
+        // 近期的高点
+        let everyFlag = datas.slice(start - 10, start).every((v) => Math.max(v.c, v.o) < d2.c);
+        if (!everyFlag) return;
+        // 10日内盘整后，创d1的新高，且成交量更大
+        let find = datas.slice(start, start + 10).find((v) => {
+            if (YingYang(v) !== 2) return;
+            if (v.v < d2.v) return;
+            return v.c > d2.c;
+        });
+        if (!find) return;
+
+        const buy = buyDate(find.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", ">|0", ""]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: find.d });
     }
     isSlqs({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         const [d1, d2, d3] = datas.slice(start - 2, start + 1);
-        // if (d2.code === "600391" && d2.d === "2015-07-09") {
-        //     debugger;
-        // }
         if (!d1) return;
+        if (testFn(d1)) {
+            debugger;
+        }
         if (!(d2.v > d1.v)) return;
         if (!(d3.v < d2.v)) return;
         if (!(d2.zd > 9.7 && d3.zd > 9.7)) return;
 
         const buy = buyDate(d3.d, 1);
-        const { trend1, flag } = exportTrend({ datas, start, name }, ["", "", ">|1"]);
+        const { trend1, flag } = exportTrend(arguments[0], ["", "", ">|1"]);
         if (!flag) return;
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: d2, end: d3.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d3.d });
     }
     isXlzt({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
@@ -470,7 +620,10 @@ class AllsClass {
     isPjtl({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         let current = datas[start];
-
+        if (!current) return;
+        if (testFn(current)) {
+            debugger;
+        }
         // let lists = datas.slice(start, datas.length)
         let index = datas.findIndex((v, i) => {
             if (i > start + 40) {
@@ -482,13 +635,13 @@ class AllsClass {
             let ok = lists.every((v) => v.l > current.l);
             if (!ok) return;
         }
-        let end = datas[index];
-        if (!end) return;
+        let find = datas[index];
+        if (!find) return;
 
-        let buy = datas[index + 1];
-        if (!buy) return;
-        let coords = ["isPjtl", current.d, end.d];
-        exportResults({ results, models: [end], datas, dwm, coords, startDay: current, buyDate: buy });
+        const buy = buyDate(find.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["<|0", "", "<=|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: current, end: find.d });
     }
     isGsbf1({ results, datas, start, dwm, name }) {
         if (dwm !== "w") return;
@@ -530,13 +683,15 @@ class AllsClass {
 
         const buy = buyDate(current.d, 1);
 
-        exportResults({ results, datas, dwm, name, ...trend1, buy, startDay: current, end: current.d });
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: current, end: current.d });
     }
     isYylm({ results, datas, start, dwm, name }) {
         if (dwm !== "m") return;
 
-        let coords = ["isYylm", d1.d, date.d];
-        exportResults({ results, models, datas, dwm, coords, startDay: d1, buyDate: date });
+        const buy = buyDate(d3.d, 1);
+        const { trend1, flag } = exportTrend(arguments[0], ["", "", ">|1"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d2, end: d3.d });
     }
     quertBefore(query, connection, { isWirteExcel = false } = {}) {
         const _this = this;
@@ -545,17 +700,11 @@ class AllsClass {
                 days,
                 date,
                 dwm = "d",
-                size = 25,
-                // page = 1,
-                index = 0,
                 start,
                 end,
                 count = -1,
-                codes = "002",
-                // models = ["isKlyh", "isYjsd", "isSlqs", "isLzyy"],
-                models = ["isFkwz"],
-                // codes = "000",
-                // models,
+                models = testFn().model,
+                codes = testFn().type,
                 mail = "query-before",
                 isUpdateType = true,
             } = query;
@@ -593,9 +742,9 @@ class AllsClass {
                     callback();
                 } else {
                     // todo......测试用
-                    // if (true) {
-                    //     stash.types[item] = ["002462"];
-                    // }
+                    if (testFn().code) {
+                        stash.types[item] = [testFn().code];
+                    }
                     if (!stash.types[item]) {
                         let distinct = "distinct(code)";
                         const distinctCodes = await SQL.querySQL({
@@ -717,32 +866,32 @@ class AllsClass {
             results = [];
         let current = new Date(date).getTime();
         let models = [
-            { name: "isKlyh", status: 2, dwm: "d" },
-            { name: "isYjsd", status: 2, dwm: "d" },
-            { name: "isQx1", status: 1, dwm: "d" },
-            { name: "isQx2", status: 1, dwm: "d" },
-            { name: "isFkwz", status: 2, dwm: "d" },
-            { name: "isCsfr", status: 1, dwm: "d" },
-            // { name: "isLahm", status: 2, dwm: 'd' },
-            { name: "isSlbw0", status: 1, dwm: "d" },
-            { name: "isSlbw1", zd: true, dwm: "d" },
-            { name: "isSlbw2", zd: true, dwm: "d" },
-            { name: "isSlbw3", zd: true, dwm: "d" },
-            // { name: "isSlbw4", status: 2, dwm: 'd' },
-            { name: "isDy", status: 2, dwm: "d" },
+            { name: "isKlyh", status: 2, dwm: "d" }, // ok
+            { name: "isYjsd", status: 2, dwm: "d" }, // ok
+            { name: "isQx1", status: 2, dwm: "d" }, // ok
+            { name: "isQx2", status: 2, dwm: "d" }, // ok
+            { name: "isFkwz", status: 2, dwm: "d" }, // ok
+            // { name: "isCsfr", status: 2, dwm: "d" }, // wait
+            // { name: "isLahm", status: 2, dwm: "d" }, // wait
+            { name: "isSlbw0", status: 1, dwm: "d" }, // ok
+            { name: "isSlbw1", zd: true, dwm: "d" }, // ok
+            { name: "isSlbw2", zd: true, dwm: "d" }, // ok
+            { name: "isSlbw3", zd: true, dwm: "d" }, // wait
+            { name: "isSlbw4", status: 2, dwm: "d" }, // wait
+            { name: "isDy", status: 2, dwm: "d" }, // ok
             // { name: "isPjtl", status: 3, dwm: 'd' },
-            { name: "isYydl", status: 2, dwm: "d" },
-            { name: "isGsdn", status: 3, dwm: "d" },
-            { name: "isSlqs", zd: true, dwm: "d" },
-            { name: "isFhlz", zd: true, dwm: "d" },
-            { name: "isLzyy", zd: true, dwm: "d" },
-            { name: "isFlzt", zd: true, dwm: "d" },
-            { name: "isSbg3", status: 2, dwm: "d" },
-            { name: "isGsbf1", status: 2, dwm: "w" },
-            { name: "isGsbf2", status: 2, dwm: "w" },
+            // { name: "isYydl", status: 2, dwm: "d" }, // wait
+            // { name: "isGsdn", status: 3, dwm: "d" },
+            { name: "isSlqs", zd: true, dwm: "d" }, // ok
+            { name: "isFhlz", zd: true, dwm: "d" }, // ok
+            { name: "isLzyy", zd: true, dwm: "d" }, // ok
+            // { name: "isFlzt", zd: true, dwm: "d" },
+            // { name: "isSbg3", status: 2, dwm: "d" },
+            // { name: "isGsbf1", status: 2, dwm: "w" },
+            // { name: "isGsbf2", status: 2, dwm: "w" },
             // { name: 'isG8M1', status: 1, dwm: 'd' },
             // { name: 'isYylm', status: 3, dwm: 'd' },
-        ].filter((v) => (inModels ? inModels.includes(v.name) : true));
+        ].filter((v) => (inModels && inModels.length ? inModels.includes(v.name) : true));
         models = models.filter((v) => v.dwm === dwm);
 
         MALine(datas, (MAParams) => {
@@ -754,7 +903,7 @@ class AllsClass {
             }
             /********************************** */
             if (c < 0) return;
-            if (zd > 13) return;
+            if (zd > 14) return;
             /********************************** */
             let params = {
                 dwm,

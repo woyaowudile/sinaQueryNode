@@ -1,10 +1,7 @@
 /** @format */
 
-const API = require("../api");
 const SQL = require("../sql");
-const { getModel } = require("../model");
-const { someDay, trend } = require("../model/methods");
-const { modelsCode } = require("../utils/code");
+const { someDay } = require("../model/methods");
 
 module.exports = function (app, connection) {
     app.get("/api/query", async (req, res) => {

@@ -1,10 +1,6 @@
 /** @format */
-const fs = require("fs");
 const request = require("request");
-const nodeExcel = require("node-xlsx");
 const { MA } = require("../api/methods");
-const { sendMail } = require("../utils/sendEmail");
-const { modelsCode } = require("../utils/code");
 const SQL = require("../sql");
 
 class Methods {
@@ -31,11 +27,48 @@ class Methods {
             let { o, c } = data;
             return Math.max(o, c);
         };
+        this.xiong = (datas, isLx = false) => {
+            let count = 0,
+                arrs = [];
+            // 是否有连续3+阴线
+            let someFlag = datas.some((v, i) => {
+                let isYY = this.YingYang(v);
+                if (isYY === 1) {
+                    count++;
+                    arrs.push(v);
+                } else {
+                    isLx && (count = 0);
+                    arrs = [];
+                }
+                return count >= 3;
+            });
+            if (!someFlag) return;
+            // 是否跳空
+            let flag = arrs.some((v, i) => {
+                if (i === 0) return;
+                let pre = arrs[i - 1];
+                return v.o < pre.c;
+            });
+            // 是否有大阴线
+            flag = arrs.some((v) => this.entity(v) > 0.02);
+
+            return flag;
+        };
+        this.upVolume = (datas) => {
+            let [pre, current] = datas;
+            if (!pre) return true;
+            return current.v / 1 > pre.v / 1;
+        };
+        this.downVolume = (datas) => {
+            let [pre, current] = datas;
+            if (!pre) return true;
+            return current.v / 1 < pre.v / 1;
+        };
         this.entity = (data) => {
             // 实体 = (收-开)/开
             if (!data) return;
-            // 大实体：, 中实体：>0.0179-0.0310 ， 小实体：
-            return (this.abs(data) / this.max(data)).toFixed(4) / 1;
+            // 大实体：, 中实体：>0.0179-0.0310 ， 小实体：0.005
+            return (this.abs(data) / data.o).toFixed(4) / 1;
         };
         this.zdf = (datas) => {
             // 大于 2% 中阴阳线
@@ -62,7 +95,7 @@ class Methods {
             let fn = function (lists = [], isContainK = 5) {
                 let findObj = {},
                     tans = [];
-                let times = new Array((Math.ceil(current.c) + "").length - 1).fill(0).reduce((x, y) => x + y, "1");
+
                 [...lists].reverse().some((v, i) => {
                     let reIndex = lists.length - 1 - i;
                     let max = Math.max(v.c, v.o);
@@ -95,14 +128,14 @@ class Methods {
                         }
                     }
                     // v的c在current上为正，下为负
-                    let vc = (v.c / times).toFixed(2);
-                    let cc = (current.c / times).toFixed(2);
-                    tans.unshift(Math.tan((vc - cc) / lists.length).toFixed(2));
-                    // if (v.c >= current.c) {
-                    // } else {
-                    //     tans.unshift(Math.tan((current.c - v.c) / lists.length).toFixed(2));
-                    // }
+                    tans.unshift(Math.tan((v.c - current.c) / lists.length).toFixed(2));
+                    // tans.unshift((v.c - current.c).toFixed(2));
                 });
+                let maxTan = Math.max(...tans.map((v) => Math.abs(v)));
+                let times = new Array((Math.floor(maxTan / 0.01) + "").length - 1).fill(0).reduce((x, y) => x + y, "1");
+                if (times >= 10) {
+                    tans = tans.map((v) => (v / times).toFixed(2));
+                }
                 findObj.status = findObj.mini > findObj.maxi ? 2 : 1;
 
                 // const goldSplitLine = [0, 23.6, 38.2, 50, 61.8, 80.9, 100, 138.2, 161.8, 200, 238.2].map((v) => {
@@ -126,9 +159,12 @@ class Methods {
                     tooltip: {
                         trigger: "axis",
                     },
+                    legend: {
+                        data: lists[0].code,
+                    },
                     xAxis: {
                         type: "category",
-                        data: lists.map((v, i) => i),
+                        data: lists.map((v, i) => v.d),
                     },
                     yAxis: [
                         {
@@ -144,6 +180,7 @@ class Methods {
                         {
                             data: lists.map((v) => v.c),
                             type: "line",
+                            name: lists[0].code,
                         },
                         {
                             data: tans,
@@ -223,7 +260,8 @@ class Methods {
             return {
                 trend_find_obj: JSON.stringify(findObj),
                 trend_glod_line: goldSplitLine,
-                trend_status: [beforeStatus, afterStatus, +beforeStatus + +afterStatus],
+                // 如果转换成数字的话，后面判断还要排除 0 ，所以这里直接用 '0'
+                trend_status: [beforeStatus, afterStatus, +beforeStatus + +afterStatus + ""],
                 trend_tans: tans,
             };
         };
@@ -241,12 +279,13 @@ class Methods {
             });
         };
         this.MALine = (datas, callback) => {
+            const _this = this;
             const inParams = { ma10: [], ma20: [], ma60: [] };
 
             datas.forEach((v, i) => {
                 inParams.ma10[i] = v.ma10 || 0;
-                inParams.ma20[i] = v.ma60 || 0;
-                inParams.ma60[i] = v.ma20 || 0;
+                inParams.ma20[i] = v.ma20 || 0;
+                inParams.ma60[i] = v.ma60 || 0;
             });
             inParams.ma60.some((v, i) => {
                 if (!v) return;
@@ -257,10 +296,10 @@ class Methods {
                 if (!inParams.b10) return;
                 if (inParams.b10 > inParams.b60 && inParams.a10 < inParams.a60) {
                     // 60在10上，下穿到10下
-                    inParams.out = "-" + i;
+                    inParams.out = "-" + _this.someDay(0, "", datas[i].d);
                 } else if (inParams.b60 > inParams.b10 && inParams.a60 < inParams.a10) {
                     // 60在10下，上穿到10上
-                    inParams.out = "+" + i;
+                    inParams.out = "+" + _this.someDay(0, "", datas[i].d);
                 }
                 if (callback) {
                     return callback({ ...inParams, data: datas[i], i });
@@ -324,8 +363,19 @@ class Methods {
             let btime = new Date(dataB).getTime();
             return equal === "=" ? btime === atime : btime >= atime;
         };
-        this.isSuccess = (datas, date, inDays = 22) => {
-            let newDatas = datas.filter((v) => this.compareTime(date, v.d)).slice(0, inDays + 1);
+        /**
+         * 在指定时间内(22)，收益多少
+         * @param {array} datas 每日数据集合
+         * @param {date} start 模型开始日期
+         * @param {date} end 模型结束日期
+         * @param {number} inDays 多少日内的收益，默认22
+         * @param {boolean} isLowSL 是否用最低价做为止损
+         * @returns max对象
+         */
+        this.isSuccess = ({ datas, start, end, inDays = 22, isLowSL = false }) => {
+            let models = datas.filter((v) => v.d >= start && v.d <= end);
+            let sl = Math.min(...models.map((v) => (isLowSL ? v.l : Math.min(v.c, v.o))));
+            let newDatas = datas.filter((v) => this.compareTime(end, v.d)).slice(0, inDays + 1);
             let find = newDatas[0];
 
             let preD = find,
@@ -340,21 +390,19 @@ class Methods {
             if (find) {
                 newDatas.slice(1, newDatas.length).some((v, i) => {
                     // 没有跌破模型的
-                    if (v.c < find.o) {
+                    if (v.c / 1 < sl / 1) {
                         return true;
                     }
-                    const zdf = this.zdf([preD, v]);
+                    const zdf = this.zdf([find, v]);
                     max.max_zdfs += zdf + ",";
-                    if (v.c >= max.max_c) {
+                    if (v.c / 1 >= max.max_c / 1) {
                         max.max_c = v.c;
                         max.max_days = i;
                         max.max_d = v.d;
-                        max.max_success += zdf;
+                        max.max_success = zdf;
                     }
                     preD = v;
                 });
-                // todo... max_success调整为 zdf([find, preD])
-                max.max_success = max.max_success.toFixed(4) / 1;
             }
             return max;
         };
@@ -417,7 +465,7 @@ class Methods {
                                 fn();
                             }
                         };
-                        splitFn({ page: 0, size: 10 });
+                        splitFn({ page: 0, size: 50 });
                     } else {
                         console.log(">>> - 没有了");
                         rl();

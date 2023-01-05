@@ -210,8 +210,8 @@ function addModelsTable(connection) {
             "trend_tans varchar(365) COMMENT 'tan辅助线，可以判断出下降、上涨、n字等'",
             // "trend_pressure varchar(100) COMMENT '数组，压力位|前高，通常来说length越少走势越明朗清晰'",
             // "trend_support varchar(100) COMMENT '数组，支撑位|前低，通常来说length越少走势越明朗清晰'",
-            "before_kdj varchar(4) COMMENT '模型前面最近的金叉(+)|死叉(-)，有多远'",
-            "after_kdj varchar(4) COMMENT '模型后面最近的金叉(+)|死叉(-)，有多远'",
+            "before_kdj varchar(11) COMMENT '模型前面最近的金叉(+)|死叉(-)，有多远'",
+            "after_kdj varchar(11) COMMENT '模型后面最近的金叉(+)|死叉(-)，有多远'",
         ];
         let names = Object.keys(modelsCode).map((v) => ({ word: `${SQL.base}_${v}`, conditions: arr1 }));
         console.log(`>>>>>>>>>>>> 共${names.length}条 准备创建新表中...`);
