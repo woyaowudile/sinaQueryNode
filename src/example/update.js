@@ -4,24 +4,34 @@ const API = require("../api");
 const SQL = require("../sql");
 const { quertBefore } = require("../model");
 const { someDay, getRequest, queryByStr } = require("../model/methods");
+const { getHolidays } = require("../api");
 
-function getContent({ codes, query }) {
+function getContent({ codes, query, sliceLength = 94 }) {
     let period = query.dwm || "d";
     let days = query.days / 1 || 0;
     let start = query.start;
     let end = query.end;
 
     if (!start) {
-        start = someDay(days, "");
+        start = someDay(days + sliceLength, "");
     }
     if (!end) {
         end = someDay(days, "");
     }
     return new Promise(async (rl, rj) => {
         // await API.getIG502({code})
-        // codes最多可以放6个
+        /**
+         * 1. codes最多可以放6个
+         * 2. 如果使用‘sohu’,则sliceLength必须设置，
+         *      设置为1可用于处理zf，考虑到1可能还是节假日，所以设置初始值10
+         *      如果需要ma，则设置为10、20、60...
+         *      60/5(一周) = 12周；12*7=84天；84+10=94
+         *      考虑到跨度2个多月，可能还有其他节假日，以最长的国庆、中秋|过年、元旦。除周末最多5+1，按10天算
+         */
         await API.get({
             // 通用属性
+            sliceLength,
+            method: "update",
             type: "sohu",
             // // sina属性
             // page: 1,

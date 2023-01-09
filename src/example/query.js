@@ -9,13 +9,16 @@ module.exports = function (app, connection) {
 
         let {
             days,
-            startDate,
-            endDate,
+            startDate1,
+            startDate2,
+            endDate1,
+            endDate2,
             dwm = "d",
             pageSize = 25,
             page = 1,
             status,
             count = -1,
+            code = "",
             codes = ["600", "601", "603", "000", "002"],
             name = "isKlyh",
             isToday,
@@ -23,19 +26,22 @@ module.exports = function (app, connection) {
         let d = someDay(days, "-");
 
         let conditions = ` dwm='${dwm}' and type in (${codes.map((v) => `'${v}'`)}) `;
+        if (code) {
+            conditions += ` and  code = '${code}'`;
+        }
         if (status) {
             conditions += ` and  trend_status = '${status}'`;
         }
         if (isToday === "Y") {
             conditions += ` and today=${isToday}`;
         } else {
-            conditions += startDate ? ` and start >= '${startDate}'` : "";
-            conditions += endDate ? ` and end <= '${endDate}'` : "";
+            conditions += startDate1 ? ` and start >= '${startDate1}'  and start <= '${startDate2}'` : "";
+            conditions += endDate1 ? ` and end >= '${endDate1}' and end <= '${endDate2}'` : "";
         }
 
-        conditions += ` LIMIT ${(page - 1) * pageSize}, ${pageSize}`;
-        const datas = await SQL.getTables({ connection, name, conditions });
-        const total = await SQL.querySQL({ connection, name: `${SQL.base}_${name}`, select: "count(*)" });
+        const limitConditions = conditions + ` LIMIT ${(page - 1) * pageSize}, ${pageSize}`;
+        const datas = await SQL.getTables({ connection, name, conditions: limitConditions });
+        const total = await SQL.querySQL({ connection, name: `${SQL.base}_${name}`, select: "count(*)", conditions });
 
         const sendResults = {
             code: 0,
@@ -90,9 +96,12 @@ module.exports = function (app, connection) {
         const queryRes = await SQL.querySQL({
             connection,
             name: `${SQL.base}_email`,
-            conditions: `d = ${date}`,
+            conditions: `d = '${date}'`,
         });
         console.log("》》 -- 查询email成功 -- 《《");
-        res.send(getSend({ result: queryRes }));
+        res.send({
+            code: 0,
+            data: queryRes,
+        });
     });
 };

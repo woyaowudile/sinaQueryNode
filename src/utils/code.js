@@ -25,6 +25,7 @@ const modelsCode = {
     isGsbf2: 1,
     isYylm: 1,
     isPjtl: 1,
+    isGpdc: 1,
 };
 
 const otherTableCodes = ["fail", "today", "used"];

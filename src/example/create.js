@@ -86,9 +86,9 @@ function addTables(connection, name = "") {
                 "type varchar(10)",
                 "zd varchar(10) COMMENT '涨幅'",
                 "zf varchar(10) COMMENT '振幅'",
-                // "ma10 varchar(16)",
-                // "ma20 varchar(16)",
-                // "ma60 varchar(16)",
+                "ma10 varchar(16)",
+                "ma20 varchar(16)",
+                "ma60 varchar(16)",
             ];
             let arr2 = [
                 "e varchar(32) COMMENT '换手额'",

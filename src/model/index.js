@@ -25,12 +25,12 @@ const { omit } = require("lodash");
 
 /* ****************************************************************** */
 const modelGlobalParams = {
-    model: ["isFkwz"],
-    code: "000011",
-    // type: "000, 002, 600, 601, 603",
-    type: "000",
-    d: "1993-02-15",
-    test: true, // 为false时，如果全量筛选模型，还需设置model = [], code = ''
+    model: [],
+    code: "",
+    type: "000, 002, 600, 601, 603",
+    // type: "000",
+    d: "2022-04-14",
+    test: false, // 为false时，如果全量筛选模型，还需设置model = [], code = ''
 };
 function testFn(data) {
     const { code, d, test } = modelGlobalParams;
@@ -643,6 +643,65 @@ class AllsClass {
         if (!flag) return;
         exportResults({ ...arguments[0], ...trend1, buy, startDay: current, end: find.d });
     }
+    isGpdc({ results, datas, start, dwm, name }) {
+        if (dwm !== "d") return;
+        const [d0, d1] = datas.slice(start - 1, start + 1);
+        if (!d1) return;
+        if (testFn(d1)) {
+            debugger;
+        }
+        // 1. 获取5天左右的最高点
+        const models5 = datas.slice(start, start + 5);
+        let models5Obj = { max: 0, v: 0, index: 0, d: "" };
+        models5.forEach((v, i) => {
+            let max = Math.max(v.c, v.o);
+            if (max > models5Obj.max) {
+                models5Obj.max = max;
+                models5Obj.d = v.d;
+                models5Obj.index = i;
+            }
+            if (v.v > models5Obj.v) {
+                models5Obj.v = v.v;
+            }
+        });
+        // 2. 涨停板 && 大概有3倍的放量
+        if (!(d0.v * 3 <= d1.v)) return;
+        // 3. 某天高于1的最高价
+        const models = datas.slice(start, datas.length);
+        let index1 = start;
+        let modelsObj = { v: d1.v, d: "" };
+        let find = models.find((v, i) => {
+            if (v.v / 1 < modelsObj.v / 1) {
+                modelsObj.v = v.v;
+                modelsObj.d = v.d;
+            }
+            // 中通客车(000957)，d1.v达到了5倍以上，v.v可以不比d1.v高
+            if ((d1.v / d0.v >= 5 ? true : v.v / 1 > d1.v / 1) && v.c > models5Obj.max) {
+                index1 = start + i;
+                // 5. find.v 要是最低的v的6倍左右
+                if (!(modelsObj.v * 5 <= v.v)) {
+                    return;
+                }
+                return true;
+            }
+        });
+        if (!find) return;
+        // 成型时间间隔不要太长
+        if (!(someDay(0, "-", d1.d) > someDay(150, "-", find.d))) return;
+        // 也不要太短
+        if (!(someDay(5, "-", d1.d) <= find.d)) return;
+        // let buyBeforeModels = datas.filter((v) => v.d > models5Obj.d && v.d < find.d);
+        // // 4.1 models5 - find之间的模型价格不应该高于 models5的max
+        // let everyFlag = buyBeforeModels.every((v) => v.c <= models5Obj.max * 1.05);
+        // // let everyFlag = buyBeforeModels.every((v) => v.c <= models5Obj.max && v.v <= models5Obj.v);
+        // if (!everyFlag) return;
+
+        const buy = buyDate(find.d, 1);
+        const { trend1, flag } = exportTrend({ ...arguments[0], start: index1 }, ["", "", ">=|0"]);
+        if (!flag) return;
+        exportResults({ ...arguments[0], ...trend1, buy, startDay: d1, end: find.d });
+        // 注： d1近期不能有前高
+    }
     isGsbf1({ results, datas, start, dwm, name }) {
         if (dwm !== "w") return;
         if (start < 61) return;
@@ -824,16 +883,16 @@ class AllsClass {
                         console.log(`>> 开始筛选模型 - start : ${name}`);
                         const results = Object.keys(datas)
                             .map((v, i) => {
-                                let k = -1;
-                                datas[v].sort((x, y) => {
-                                    ++k;
-                                    if (k >= stretch) {
-                                        y.ma10 = MA(datas[v], k, 10);
-                                        y.ma20 = MA(datas[v], k, 20);
-                                        y.ma60 = MA(datas[v], k, 60);
-                                    }
-                                    // return new Date(x.d).getTime() - new Date(y.d).getTime();
-                                });
+                                // let k = -1;
+                                // datas[v].sort((x, y) => {
+                                //     ++k;
+                                //     if (k >= stretch) {
+                                //         y.ma10 = MA(datas[v], k, 10);
+                                //         y.ma20 = MA(datas[v], k, 20);
+                                //         y.ma60 = MA(datas[v], k, 60);
+                                //     }
+                                //     // return new Date(x.d).getTime() - new Date(y.d).getTime();
+                                // });
                                 const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
                                 return res[0];
                             })
@@ -874,6 +933,7 @@ class AllsClass {
             // { name: "isCsfr", status: 2, dwm: "d" }, // wait
             // { name: "isLahm", status: 2, dwm: "d" }, // wait
             { name: "isSlbw0", status: 1, dwm: "d" }, // ok
+            { name: "isGpdc", zd: true, dwm: "d" }, // wait
             { name: "isSlbw1", zd: true, dwm: "d" }, // ok
             { name: "isSlbw2", zd: true, dwm: "d" }, // ok
             { name: "isSlbw3", zd: true, dwm: "d" }, // wait

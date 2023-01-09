@@ -11,7 +11,7 @@ class Methods {
             let { o, c } = data;
             if (c < o) {
                 return 1;
-            } else if (c > o) {
+            } else if (c >= o) {
                 return 2;
             } else {
                 return 3;

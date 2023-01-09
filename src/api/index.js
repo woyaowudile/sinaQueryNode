@@ -176,21 +176,25 @@ function callback(url, params) {
                                 let { code, hq, msg, status, stat } = data;
 
                                 if (status === 0) {
-                                    let preClose = 0;
                                     let [last] = hq.slice(-1);
                                     let lastTime = new Date(last[0]).getTime();
                                     let sub = 1000 * 3600 * 24 * 10; // 如果相差10天以内就不是下市
+                                    let hqs = params.method === "update" ? hq.slice(-1) : hq;
+                                    // 倒数第二条做为前一天
+                                    let preClose = params.method === "update" ? hq.slice(-2, -1)[0][2] || 0 : 0;
+
                                     if (endTime ? lastTime + sub >= endTime : true) {
                                         let codeName = code.split("_")[1];
                                         arrs.push({
                                             code: codeName,
                                             type: codeName.slice(0, 3),
-                                            data: hq.map((level1, index1) => {
+                                            data: hqs.map((level1, index1) => {
+                                                let index = params.method === "update" ? hq.length - 1 : index1;
                                                 let [d, o, c, zde, zd, l, h, v, e, hs] = level1;
                                                 let zf = (((h - l) / preClose / 1) * 100).toFixed(2);
-                                                let ma10 = MA(hq, index1, 10);
-                                                let ma20 = MA(hq, index1, 20);
-                                                let ma60 = MA(hq, index1, 60);
+                                                let ma10 = MA(hq, index, 10, 2);
+                                                let ma20 = MA(hq, index, 20, 2);
+                                                let ma60 = MA(hq, index, 60, 2);
                                                 preClose = c;
                                                 return {
                                                     code: codeName,

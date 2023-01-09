@@ -195,8 +195,8 @@ function setTables({ connection, name, code, type, dwm, jys }) {
 
 // 包含哪些元素
 function omitEles(datas, { its, dwm, type } = {}) {
-    // let arr = ["zf", "ma10", "ma20", "ma60"],
-    let arr1 = ["type", "h", "l", "o", "c", "v", "zd", "zf"];
+    let arr = ["zf", "ma10", "ma20", "ma60"];
+    let arr1 = ["type", "h", "l", "o", "c", "v", "zd", ...arr];
     let arr2 = ["e", "zde", "zf", "hs", "ma10", "ma20", "ma60"];
     // let arr = ["id", "d", "code", "dwm", ...(flag ? arr2 : arr1)];
 

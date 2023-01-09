@@ -40,7 +40,7 @@ module.exports = function (app, connection) {
                     sendMail(`这${dwmName[dwm]}（${new Date().toLocaleString()}）的任务开始了 by ${dwm}`, "（开始）");
                     let url = `http://localhost:3334/api/update?dwm=${dwm}`;
                     if (days) {
-                        url += `&start=${someDay(Math.abs(days), "")}&end=${someDay(0, "")}`;
+                        url += `&start=${someDay(Math.abs(days), "")}&end=${someDay(Math.abs(days), "")}`;
                     }
                     if (start) {
                         url += `&start=${start}`;
