@@ -192,6 +192,7 @@ function addModelsTable(connection) {
             "type varchar(10)",
             "start varchar(10)",
             "end varchar(10)",
+            "buy varchar(10)",
             "dwm varchar(10)",
             "today varchar(10)",
             // max_ 用以总结最终的收益

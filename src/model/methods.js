@@ -422,7 +422,7 @@ class Methods {
             return new Promise((rl, rj) => {
                 let index = -1,
                     category = {};
-                const newDatas = datas
+                let newDatas = datas
                     .map((v) => {
                         v.coords.forEach((d) => (d.code = v.code));
                         return [...v.coords];
@@ -435,7 +435,8 @@ class Methods {
                         category[v.name] = [v];
                     }
                 });
-                const arrs = Object.keys(category);
+                let arrs = Object.keys(category);
+                let todays = [];
                 let fn = async function () {
                     const keysName = arrs[++index];
                     if (keysName) {
@@ -447,8 +448,13 @@ class Methods {
                             const item = category[keysName].slice(page, size);
                             if (item.length) {
                                 const values = item.map((v) => {
-                                    if (_this.someDay(0) === v.end) {
-                                        v.today = "Y";
+                                    if (v.today) {
+                                        todays[todays.length] = {
+                                            name: v.name,
+                                            code: v.code,
+                                            d: v.buy,
+                                            dwm: v.dwm,
+                                        };
                                     }
                                     return `(${Object.values(v).map((v) => `'${v}'`)})`;
                                 });
@@ -460,9 +466,6 @@ class Methods {
                                 }
                                 console.log(`>>> ${size}/${total}`);
 
-                                // if (item[0].type === "600026") {
-                                //     debugger;
-                                // }
                                 await SQL.insertSQL({
                                     connection: global.customConnection,
                                     name,
@@ -478,6 +481,11 @@ class Methods {
                         splitFn({ page: 0, size: 500 });
                     } else {
                         console.log(">>> - 没有了");
+                        await _this.saveVersionList(todays);
+                        category = null;
+                        newDatas = null;
+                        arrs = null;
+                        todays = null;
                         rl();
                     }
                 };
@@ -489,7 +497,7 @@ class Methods {
          * @param {array} datas
          * @returns Promise
          */
-        this.saveVersionList = (datas) => {
+        this.saveVersionList = (datas = []) => {
             return new Promise(async (rl, rj) => {
                 let index = -1;
                 let date = datas[0].d;
@@ -502,15 +510,16 @@ class Methods {
                 console.log(`>>> 开始存入${SQL.base}_email表: ${date} ...`);
                 let fn = async function () {
                     const item = datas[++index];
-                    if (item) {
+                    if (!index) {
                         console.log(`> email表存入中：${item.name} - ${item.code} ...`);
                         const keys = Object.keys(item);
-                        const values = Object.values(item);
+                        // const values = Object.values(item);
+                        const values = datas.map((v) => `(${Object.values(v).map((d) => `'${d}'`)})`);
 
                         await SQL.insertSQL({
                             connection: global.customConnection,
                             name: `${SQL.base}_email(${keys})`,
-                            values: `(${values.map((v) => `'${v}'`)})`,
+                            values: `${values}`,
                         });
                         fn();
                     } else {

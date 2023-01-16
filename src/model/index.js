@@ -48,12 +48,13 @@ function exportResults(params) {
     let index = results.findIndex((v) => v.code === code);
     /* *************************************************************** */
     let maxRes = isSuccess({ datas, start: startDay.d, end, isLowSL: true });
+    let today = someDay(0) <= someDay(0, "-", buy);
     maxRes.before_kdj = params.MAParams.out;
     let res = {
         type: code.slice(0, 3),
-        ..._.omit(params, ["datas", "results", "startDay", "buy", "MAParams", "start"]),
+        ..._.omit(params, ["datas", "results", "startDay", "MAParams", "start"]),
         start: d,
-        today: someDay(0) === someDay(0, "-", buy),
+        today,
         ...maxRes,
     };
     // coords.push(res);
@@ -775,6 +776,7 @@ class AllsClass {
             } = cloneQuery;
             let resultsParams = {
                 codes: [],
+                models: {},
                 downloads: [],
             };
             let stash = {
@@ -902,18 +904,18 @@ class AllsClass {
                             // console.log(date4 - date3);
                             console.log(`>> 模型筛选完成 - end : ${name}`);
                             let newDs = ds.filter((v) => v);
-                            newDs.forEach((v) => {
-                                if (!(v.coords && v.coords.length)) return;
-                                v.coords.forEach((d) => {
-                                    if (d.today) {
-                                        if (resultsParams.models[d.name]) {
-                                            resultsParams.models[d.name]++;
-                                        } else {
-                                            resultsParams.models[d.name] = 1;
-                                        }
-                                    }
-                                });
-                            });
+                            // newDs.forEach((v) => {
+                            //     if (!(v.coords && v.coords.length)) return;
+                            //     v.coords.forEach((d) => {
+                            //         if (d.today) {
+                            //             if (resultsParams.models[d.name]) {
+                            //                 resultsParams.models[d.name]++;
+                            //             } else {
+                            //                 resultsParams.models[d.name] = 1;
+                            //             }
+                            //         }
+                            //     });
+                            // });
                             resultsParams.downloads = [] || resultsParams.downloads.concat(newDs);
 
                             await saveModel(newDs);
