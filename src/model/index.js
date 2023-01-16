@@ -53,7 +53,7 @@ function exportResults(params) {
         type: code.slice(0, 3),
         ..._.omit(params, ["datas", "results", "startDay", "buy", "MAParams", "start"]),
         start: d,
-        today: "",
+        today: someDay(0) === someDay(0, "-", buy),
         ...maxRes,
     };
     // coords.push(res);
