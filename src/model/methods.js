@@ -499,6 +499,7 @@ class Methods {
          */
         this.saveVersionList = (datas = []) => {
             return new Promise(async (rl, rj) => {
+                if (!datas.length) return;
                 let index = -1;
                 let date = datas[0].d;
 
