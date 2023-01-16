@@ -25,7 +25,13 @@ class Methods {
         this.max = (data) => {
             if (!data) return;
             let { o, c } = data;
-            return Math.max(o, c);
+            // 使用 Math.max性能没这个好
+            return o > c ? o : c;
+        };
+        this.min = (data) => {
+            if (!data) return;
+            let { o, c } = data;
+            return o < c ? o : c;
         };
         this.xiong = (datas, isLx = false) => {
             let count = 0,
@@ -80,12 +86,13 @@ class Methods {
         };
         this.lineLong = (data, type = "") => {
             const { h, l, c, o } = data;
-            let top = h - Math.max(c, o);
-            let bottom = Math.min(c, o) - l;
+            let top = h - this.max(data);
+            let bottom = this.min(data) - l;
             let body = this.abs(data);
             return top * 2 < body && bottom * 2 < body;
         };
         this.trend = ({ datas, start, stretch = 60 }) => {
+            const _this = this;
             const index = start - stretch + 1;
             const arrs = datas.slice(index, start + 1);
             let current = datas[start];
@@ -94,13 +101,13 @@ class Methods {
             }
             let fn = function (lists = [], isContainK = 5) {
                 let findObj = {},
-                    tans = [];
+                    tans = new Array(lists.length);
 
                 [...lists].reverse().some((v, i) => {
                     let reIndex = lists.length - 1 - i;
-                    let max = Math.max(v.c, v.o);
+                    let max = _this.max(v);
                     let maxd = v.d;
-                    let min = Math.min(v.c, v.o);
+                    let min = v.c < v.o ? v.c : v.o;
                     let mind = v.d;
                     // 表示current，前5根不参与. isContainK可以为number、false、undefined、null等
                     if (reIndex < isContainK) {
@@ -128,8 +135,8 @@ class Methods {
                         }
                     }
                     // v的c在current上为正，下为负
-                    tans.unshift(Math.tan((v.c - current.c) / lists.length).toFixed(2));
-                    // tans.unshift((v.c - current.c).toFixed(2));
+                    // tans.unshift(Math.tan((v.c - current.c) / lists.length).toFixed(2));
+                    tans[reIndex] = Math.tan((v.c - current.c) / lists.length).toFixed(2);
                 });
                 let maxTan = Math.max(...tans.map((v) => Math.abs(v)));
                 let times = new Array((Math.floor(maxTan / 0.01) + "").length - 1).fill(0).reduce((x, y) => x + y, "1");
@@ -142,7 +149,7 @@ class Methods {
                 //     let sub = Math.abs(findObj.max - findObj.min),
                 //         number = 0;
                 //     if (findObj.status === 1) {
-                //         number = (sub / 100) * v + findObj.min;
+                //         number = (sub / 100) * v + findObj.min / 1;
                 //     } else {
                 //         number = findObj.max - (sub / 100) * v;
                 //     }
@@ -250,7 +257,7 @@ class Methods {
                 let sub = Math.abs(findObj.max - findObj.min),
                     number = 0;
                 if (findObj.maxi > findObj.mini) {
-                    number = (sub / 100) * v + findObj.min;
+                    number = (sub / 100) * v + findObj.min / 1;
                 } else {
                     number = findObj.max - (sub / 100) * v;
                 }
@@ -373,9 +380,12 @@ class Methods {
          * @returns max对象
          */
         this.isSuccess = ({ datas, start, end, inDays = 22, isLowSL = false }) => {
-            let models = datas.filter((v) => v.d >= start && v.d <= end);
-            let sl = Math.min(...models.map((v) => (isLowSL ? v.l : Math.min(v.c, v.o))));
-            let newDatas = datas.filter((v) => this.compareTime(end, v.d)).slice(0, inDays + 1);
+            let startIndex = datas.findIndex((v) => v.d === start);
+            let endIndex = datas.findIndex((v) => v.d === end);
+            let models = datas.slice(startIndex, endIndex + 1);
+            // let models = datas.filter((v) => v.d >= start && v.d <= end);
+            let sl = Math.min(...models.map((v) => (isLowSL ? v.l : this.min(v))));
+            let newDatas = datas.slice(endIndex, endIndex + inDays + 1);
             let find = newDatas[0];
 
             let preD = find,
@@ -465,7 +475,7 @@ class Methods {
                                 fn();
                             }
                         };
-                        splitFn({ page: 0, size: 50 });
+                        splitFn({ page: 0, size: 500 });
                     } else {
                         console.log(">>> - 没有了");
                         rl();

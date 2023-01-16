@@ -75,7 +75,7 @@ module.exports = function (app, connection) {
         });
 
         const a1 = [...new Set(datas.map((v) => v.code))];
-        conditions = ` dwm='${dwm}' and code in (${a1.map((v) => `'${v}'`)}) `;
+        conditions = ` dwm='${dwm}' and code in (${a1.map((v) => `'${v}'`)}) ORDER BY code`;
         const chartsDatas = await SQL.querySQL({ connection, name: `${SQL.base}_${a1[0].slice(0, 3)}`, conditions });
         sendResults.data.forEach((v) => {
             // const { start, end } = v;

@@ -84,10 +84,14 @@ function insertSQL({ connection, name, values, callback }) {
     return new Promise((rl, rj) => {
         // let sql = `INSERT INTO ig502_list(code, type, name, jys) VALUES('000001', '000', '零零幺', 'sz'),('603999', '603', '六零幺', 'sz')`
         let sql = `INSERT INTO ${name} VALUES ${values}`;
-        connection.query(sql, function (err, res) {
-            let result = handleResult({ err, res, name: "insertSQL" });
-            eval(result.code)(result);
-        });
+        try {
+            connection.query(sql, function (err, res) {
+                let result = handleResult({ err, res, name: "insertSQL" });
+                eval(result.code)(result);
+            });
+        } catch (error) {
+            console.log(error);
+        }
     });
 }
 function updateSQL({ connection, name, values, conditions, callback }) {

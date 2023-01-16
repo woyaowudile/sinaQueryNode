@@ -21,15 +21,15 @@ const {
     xiong,
 } = require("./methods");
 const { sendMail } = require("../utils/sendEmail");
-const { omit } = require("lodash");
+const { omit, cloneDeep } = require("lodash");
 
 /* ****************************************************************** */
 const modelGlobalParams = {
     model: [],
     code: "",
     type: "000, 002, 600, 601, 603",
-    // type: "000",
-    d: "2022-04-14",
+    // type: "002",
+    d: "2022-11-03",
     test: false, // 为false时，如果全量筛选模型，还需设置model = [], code = ''
 };
 function testFn(data) {
@@ -181,7 +181,9 @@ class AllsClass {
     isQx1({ results, datas, start, dwm, name }) {
         if (dwm !== "d") return;
         // 七星中是否可以存在 十字星(即开盘价 === 收盘价)
-        let [d1, d2, d3, d4, d5, d6, d7] = datas.slice(start - 6, start + 1);
+        let startIndex = start - 6;
+        let endIndex = start + 1;
+        let [d1, d2, d3, d4, d5, d6, d7] = datas.slice(startIndex, endIndex);
         if (!d1) return;
         if (YingYang(d1) !== 1) return;
         if (YingYang(d2) !== 1) return;
@@ -469,7 +471,8 @@ class AllsClass {
         let find = arrs.find((v, i) => d1.c > v.c && i > 5);
         if (!find) return;
         // 回到箱体后，找到突破的点(买点)
-        let count = 0;
+        let count = 0,
+            index = 0;
         find = arrs.find((v, i) => {
             // 突破要放量
             let flag = v.d > find.d && v.c > d1.c && upVolume([arrs[i - 1], v]);
@@ -481,11 +484,13 @@ class AllsClass {
                 // 如果不连续，且不是突破就置0
                 count = 0;
             }
+            index = i;
             return flag && count >= 5;
         });
         if (!find) return;
         // 不能跌破箱体
-        const filters = arrs.filter((v) => v.d < find.d);
+        // const filters = arrs.filter((v) => v.d < find.d);
+        const filters = arrs.slice(0, index);
         if (filters.some((v) => v.o < d1.o)) return;
         const buy = buyDate(find.d, 1);
         const { trend1, flag } = exportTrend(arguments[0], ["<|0", "hp", ""]);
@@ -755,6 +760,7 @@ class AllsClass {
     quertBefore(query, connection, { isWirteExcel = false } = {}) {
         const _this = this;
         return new Promise(async (rl, rj) => {
+            let cloneQuery = cloneDeep(query);
             let {
                 days,
                 date,
@@ -766,13 +772,10 @@ class AllsClass {
                 codes = testFn().type,
                 mail = "query-before",
                 isUpdateType = true,
-            } = query;
+            } = cloneQuery;
             let resultsParams = {
-                init: true,
                 codes: [],
                 downloads: [],
-                waiting: false,
-                status: "",
             };
             let stash = {
                 useds: [],
@@ -790,10 +793,6 @@ class AllsClass {
             // 2. 过滤出条件下的类型，例如：601、603...
             usedTypes = usedTypes.filter((v) => codes.indexOf(v) > -1);
 
-            // usedTypes = usedTypes.filter(v => !resultsParams.codes.some(d => d[v]))
-
-            let total = usedTypes.length;
-
             let fn = async () => {
                 let item = usedTypes[++count];
                 if (!item) {
@@ -805,13 +804,16 @@ class AllsClass {
                         stash.types[item] = [testFn().code];
                     }
                     if (!stash.types[item]) {
-                        let distinct = "distinct(code)";
-                        const distinctCodes = await SQL.querySQL({
-                            connection,
-                            name: `${SQL.base}_${item}`,
-                            distinct,
-                        });
-                        stash.types[item] = distinctCodes.data.map((v) => v.code).sort();
+                        // let distinct = "distinct(code)";
+                        // const distinctCodes = await SQL.querySQL({
+                        //     connection,
+                        //     name: `${SQL.base}_${item}`,
+                        //     distinct,
+                        // });
+                        stash.types[item] = usedres
+                            .filter((v) => v.type === item)
+                            .map((v) => v.code)
+                            .sort();
                     }
                     fn();
                 }
@@ -833,9 +835,12 @@ class AllsClass {
                     const html = getMailHtml(resultsParams.downloads, mail, dwm);
                     isUpdateType && sendMail(html);
                     console.log(">>>>>>>>>>>> - TEST - <<<<<<<<<<<");
-                    rl(resultsParams.codes);
-                    resultsParams.codes = [];
-                    resultsParams.downloads = [];
+                    rl();
+                    cloneQuery = null;
+                    resultsParams = null;
+                    usedres = null;
+                    usedTypes = null;
+                    stash = null;
                 } else {
                     let splitFn = async function (splitObj) {
                         // let splitObj = obj
@@ -860,13 +865,14 @@ class AllsClass {
                         }
                         // 正向排序
                         conditions += ` ORDER BY d ASC`;
-                        const date1 = new Date().getTime();
-                        const res = await SQL.getTables({
+                        // const date1 = new Date().getTime();
+                        let res = await SQL.getTables({
                             connection,
                             name,
                             conditions,
                         });
-                        const date2 = new Date().getTime();
+                        console.log(`>> 共 ${res.length} 条`);
+                        // const date2 = new Date().getTime();
                         let datas = {};
                         res.forEach((v, i) => {
                             const { code } = v;
@@ -878,37 +884,45 @@ class AllsClass {
                                 datas[code] = [newV];
                             }
                         });
-                        const date3 = new Date().getTime();
+                        // const date3 = new Date().getTime();
 
                         console.log(`>> 开始筛选模型 - start : ${name}`);
-                        const results = Object.keys(datas)
+                        let ps = Object.keys(datas)
                             .map((v, i) => {
-                                // let k = -1;
-                                // datas[v].sort((x, y) => {
-                                //     ++k;
-                                //     if (k >= stretch) {
-                                //         y.ma10 = MA(datas[v], k, 10);
-                                //         y.ma20 = MA(datas[v], k, 20);
-                                //         y.ma60 = MA(datas[v], k, 60);
-                                //     }
-                                //     // return new Date(x.d).getTime() - new Date(y.d).getTime();
-                                // });
-                                const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
-                                return res[0];
+                                return new Promise((rl) => {
+                                    const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
+
+                                    rl(res[0] && res[0].coords ? res[0] : 0);
+                                });
                             })
                             .filter((v) => v);
 
-                        const date4 = new Date().getTime();
-                        console.log(date2 - date1, date3 - date2, date4 - date3);
-                        console.log(`>> 模型筛选完成 - end : ${name}`);
-                        resultsParams.downloads = [] || resultsParams.downloads.concat(results);
-                        resultsParams.codes = resultsParams.codes.concat(datas);
+                        Promise.all(ps).then(async (ds) => {
+                            // const date4 = new Date().getTime();
+                            // console.log(date4 - date3);
+                            console.log(`>> 模型筛选完成 - end : ${name}`);
+                            let newDs = ds.filter((v) => v);
+                            newDs.forEach((v) => {
+                                if (!(v.coords && v.coords.length)) return;
+                                v.coords.forEach((d) => {
+                                    if (d.today) {
+                                        if (resultsParams.models[d.name]) {
+                                            resultsParams.models[d.name]++;
+                                        } else {
+                                            resultsParams.models[d.name] = 1;
+                                        }
+                                    }
+                                });
+                            });
+                            resultsParams.downloads = [] || resultsParams.downloads.concat(newDs);
 
-                        await saveModel(results);
-                        splitFn(splitObj);
-                        // }
+                            await saveModel(newDs);
+                            res = null;
+                            datas = null;
+                            splitFn(splitObj);
+                        });
                     };
-                    splitFn({ page: 0, size: 100 });
+                    splitFn({ page: 0, size: 200 });
                 }
             };
             // 先将表清空
