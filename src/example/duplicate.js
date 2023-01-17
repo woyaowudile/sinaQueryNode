@@ -12,28 +12,40 @@ module.exports = function (app, connection) {
             name: "ig502_list",
             distinct: "DISTINCT type",
         });
-        const types = getLists.data.map((v) => v.type);
+
+        // 获取到所有需要去重的表名
+        let types = getLists.data.map((v) => v.type);
+        types.push("email");
+        let fields = {
+            email: "name, code, d",
+        };
+
+        // 去重逻辑
         let i = -1;
         let fn = async function () {
             let type = types[++i];
             if (type) {
-                console.log(`》 去重查询：xxxx_${type}`);
-                const query = await SQL.querySQL({
+                console.log(`》 去重查询：${SQL.base}_${type}`);
+                // const query = await SQL.querySQL({
+                //     connection,
+                //     name: `${SQL.base}_${type}`,
+                //     select: `max(id) id, ${fields[type] || "code, d"}`,
+                //     conditions: `d>='${days}' GROUP BY ${fields[type] || "code, d"}`,
+                // });
+                // const ids = query.data.map((v) => v.id);
+
+                // 大约3分钟， 优化方向： 例总共10条，其中有一条重复出现5次， 如何查询出来这5条
+                const query = await SQL.deleteSQL({
                     connection,
-                    name: `xxxx_${type}`,
-                    select: "min(id) id, code, d",
-                    conditions: `d>='${days}' GROUP BY code, d HAVING COUNT(*) > 1`,
+                    name: `${SQL.base}_${type}`,
+                    conditions: `id not in (SELECT id from (SELECT max(id) id, ${fields[type] || "code, d"} FROM ${SQL.base}_${type} GROUP BY ${
+                        fields[type] || "code, d"
+                    }) as a)`,
                 });
-                const ids = query.data.map((v) => v.id);
-                if (ids.length) {
-                    await SQL.deleteSQL({
-                        connection,
-                        name: `xxxx_${type}`,
-                        conditions: `id in (${ids})`,
-                    });
+                if (query.data.affectedRows > 0) {
                     console.log(`------ 删除重复数据成功`);
                 } else {
-                    console.log(`》 未查询到重复数据`);
+                    console.log(`》  未查询到重复数据`);
                 }
                 fn();
             } else {
