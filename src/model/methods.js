@@ -499,7 +499,11 @@ class Methods {
          */
         this.saveVersionList = (datas = []) => {
             return new Promise(async (rl, rj) => {
-                if (!datas.length) return;
+                if (!datas.length) {
+                    console.log(`>> - 没有需要存入email表中的数据`);
+                    rl();
+                    return;
+                }
                 let index = -1;
                 let date = datas[0].d;
 

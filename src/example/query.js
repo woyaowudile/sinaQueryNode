@@ -33,7 +33,7 @@ module.exports = function (app, connection) {
             conditions += ` and  trend_status = '${status}'`;
         }
         if (isToday === "Y") {
-            conditions += ` and today=${isToday}`;
+            conditions += ` and today='true'`;
         } else {
             conditions += startDate1 ? ` and start >= '${startDate1}'  and start <= '${startDate2}'` : "";
             conditions += endDate1 ? ` and end >= '${endDate1}' and end <= '${endDate2}'` : "";
@@ -96,7 +96,7 @@ module.exports = function (app, connection) {
         const queryRes = await SQL.querySQL({
             connection,
             name: `${SQL.base}_email`,
-            conditions: `d = '${date}'`,
+            conditions: `d >= '${date}'`,
         });
         console.log("》》 -- 查询email成功 -- 《《");
         res.send({
