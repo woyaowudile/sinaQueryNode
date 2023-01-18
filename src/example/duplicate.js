@@ -3,9 +3,9 @@ const { someDay } = require("../model/methods");
 
 module.exports = function (app, connection) {
     app.get("/api/duplicate/remove", async (req, res) => {
-        let { query } = req;
+        let { query, removeType = "tables" } = req;
         console.log(`-------------开始执行 /api/duplicate/remove---------------`);
-        const days = someDay(query.days || 0, "-", +query.start);
+        // const days = someDay(query.days || 0, "-", +query.start);
 
         const getLists = await SQL.querySQL({
             connection,
@@ -15,7 +15,9 @@ module.exports = function (app, connection) {
 
         // 获取到所有需要去重的表名
         let types = getLists.data.map((v) => v.type);
-        types.push("email");
+        if (removeType === "email") {
+            types = ["email"];
+        }
         let fields = {
             email: "name, code, d",
         };
@@ -35,14 +37,14 @@ module.exports = function (app, connection) {
                 // const ids = query.data.map((v) => v.id);
 
                 // 大约3分钟， 优化方向： 例总共10条，其中有一条重复出现5次， 如何查询出来这5条
-                const query = await SQL.deleteSQL({
+                const queryRes = await SQL.deleteSQL({
                     connection,
                     name: `${SQL.base}_${type}`,
                     conditions: `id not in (SELECT id from (SELECT max(id) id, ${fields[type] || "code, d"} FROM ${SQL.base}_${type} GROUP BY ${
                         fields[type] || "code, d"
                     }) as a)`,
                 });
-                if (query.data.affectedRows > 0) {
+                if (queryRes.data.affectedRows > 0) {
                     console.log(`------ 删除重复数据成功`);
                 } else {
                     console.log(`》  未查询到重复数据`);

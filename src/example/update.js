@@ -4,7 +4,6 @@ const API = require("../api");
 const SQL = require("../sql");
 const { quertBefore } = require("../model");
 const { someDay, getRequest, queryByStr } = require("../model/methods");
-const { getHolidays } = require("../api");
 
 function getContent({ codes, query, sliceLength = 94 }) {
     let period = query.dwm || "d";
@@ -84,8 +83,9 @@ module.exports = function (app, connection) {
 
         let count = 0,
             stashFailItem = [];
+
         let fn = async function (unusedArr = unused, num = 6) {
-            let item = [] || unusedArr.slice(count, (count += num));
+            let item = unusedArr.slice(count, (count += num));
             if (item.length && isUpdateType) {
                 let codes = item.map((v) => v.code);
 
@@ -136,10 +136,10 @@ module.exports = function (app, connection) {
                     }
                     res.splice(-1);
                 }
-                setTimeout(() => {
-                    console.log(`------${count}/${unusedArr.length}------`);
-                    fn(unusedArr, num);
-                }, 100);
+                // setTimeout(() => {
+                console.log(`------${count}/${unusedArr.length}------`);
+                fn(unusedArr, num);
+                // });
             } else {
                 if (stashFailItem.length) {
                     count = 0;
@@ -148,12 +148,15 @@ module.exports = function (app, connection) {
                 } else {
                     let url = "http://localhost:3334/api/duplicate/remove";
                     const str = queryByStr(query);
-                    if (str) {
-                        url += `?${str}`;
-                        isUpdateType && (await getRequest(url));
-                    }
-                    await quertBefore({ dwm, mail: "update", isUpdateType }, connection);
+                    // if (str) {
+                    //     url += `?${str}`;
+                    isUpdateType && (await getRequest(url));
+                    // }
+                    await quertBefore({ mail: "update", isUpdateType, ...query }, connection);
                     console.log(`-------------执行完成 /api/update?${dwm}---------------`);
+
+                    //
+                    isUpdateType && (await getRequest(`${url}?removeType='email'`));
 
                     res.send("update - ok");
                 }

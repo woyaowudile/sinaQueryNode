@@ -1,7 +1,6 @@
 /** @format */
 
 const request = require("request");
-const { someDay } = require("../model/methods");
 const { MA } = require("./methods");
 
 const { sohu, sina, ig502, holidays, dfcf } = require("./url");
@@ -332,17 +331,22 @@ module.exports = {
         TYPE = params.type || "sohu";
         return callback(URL[TYPE](params), params);
     },
-    getHolidays: (inDay) => {
+    getHolidays: (inDay, { isMonth } = {}) => {
         const workday = 2; // 非工作日
+        const weekend = 2; // 非周末
         const date = new Date(inDay);
         const year = date.getFullYear();
         const month = `${date.getMonth() + 1}`.padStart(2, 0);
         const day = `${date.getDate()}`.padStart(2, 0);
         const week = date.getDay();
+        const url = `${holidays}&workday=${workday}&weekend=${weekend}&year=${year}`;
+        if (isMonth) {
+            url += `&month=${year}${month}`;
+        }
         return new Promise((rl, rj) => {
             request(
                 {
-                    url: `${holidays}&workday=${workday}&year=${year}&month=${year}${month}`,
+                    url,
                     method: "GET",
                     headers: {
                         "Content-Type": "text/json",
@@ -353,59 +357,8 @@ module.exports = {
                     // console.log("body", body);
                     const res = JSON.parse(body);
                     if (res.code === 0) {
-                        const lists = res.data.list,
-                            result = { isWorkDay: true, d: 0, w: 0, m: 0 };
-                        let cur = current,
-                            flag = false;
-
-                        let endDate = new Date(year, month, 0).getDate();
-                        result.isWorkDay = !lists.find((v) => v.date === current);
-
-                        // 设置周
-                        lists.some((v, i, arrs) => {
-                            if (result.isWorkDay) {
-                                if (current > v.date || i === arrs.length - 1) {
-                                    let pre = arrs[i - 1];
-                                    let sub = pre ? pre.date - current : 0;
-                                    if (!pre) {
-                                        // 最后一周没有周末的情况，2022-09
-                                        result.w = endDate === day ? 0 : week;
-                                    } else if (sub === 1 || sub < 0) {
-                                        // 节假日前一天
-                                        result.w = 0;
-                                    } else {
-                                        // 节假日前几天
-                                        result.w = week === 0 ? 7 : week;
-                                    }
-                                    return true;
-                                }
-                            } else {
-                                if (v.date === cur) {
-                                    cur--;
-                                    result.w++;
-                                }
-                            }
-                        });
-                        // 设置月
-                        if (day === endDate) {
-                            result.isWorkMonth = true;
-                            result.m = 0;
-                        } else {
-                            result.m = day / 1;
-                        }
-
-                        // 判断值，是否是周六、周日
-                        let fn = function (dwm) {
-                            let days = new Date(someDay(result[dwm], "-", `${year}-${month}-${day}`)).getDay();
-                            if (days === 0) {
-                                result[dwm] += 2;
-                            } else if (days === 6) {
-                                result[dwm] += 1;
-                            }
-                        };
-                        ["w", "m"].forEach((v) => fn(v));
-
-                        rl(result);
+                        const lists = res.data.list;
+                        rl({ lists, date, year, month, day, week, current });
                     }
                 }
             );

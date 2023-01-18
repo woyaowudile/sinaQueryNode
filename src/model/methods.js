@@ -1,9 +1,12 @@
 /** @format */
 const request = require("request");
+const { getHolidays } = require("../api");
+
 const { MA } = require("../api/methods");
 const SQL = require("../sql");
 
 class Methods {
+    modelClassStashObj = {};
     constructor() {
         this.YingYang = (data) => {
             if (!data) return;
@@ -314,26 +317,81 @@ class Methods {
             });
             return inParams.out || "null";
         };
-        this.buyDate = (date, number = 0) => {
-            let dd = new Date(date);
-            dd.setDate(dd.getDate() + number);
-            let day = dd.getDay();
-            // 周末跳过
-            switch (day) {
-                case 6:
-                    dd = new Date(date);
-                    dd.setDate(dd.getDate() + number + 2);
-                    break;
-                case 0:
-                    dd = new Date(date);
-                    dd.setDate(dd.getDate() + number + 1);
-                    break;
-            }
-            let y = dd.getFullYear() + "";
-            let m = dd.getMonth() + 1 + "";
-            let d = dd.getDate() + "";
+        this.buyDate = (inDate, number = 0) => {
+            // 为了节省时间，计算买点的时候就不调接口查询是否为节假日。仅判断当年的节假日
+            const _this = this;
+            const { lists } = _this.modelClassStashObj.holidays;
+            // lists是当月的节假日
+            let date;
+            lists.some((v, i) => {
+                const days = -(number + i);
+                date = _this.someDay(days, "-", inDate);
+                const newDay = new Date(date).getDay();
+                let flag = ![0, 6].some((d) => d === newDay);
+                if (flag) {
+                    flag = !lists.some((d) => _this.someDay(0, "-", d.date) === date / 1);
+                }
+                return flag;
+            });
+            return date;
+        };
+        this.getIsHoliday = (date) => {
+            const _this = this;
+            return new Promise(async (rl, rj) => {
+                const { lists, year, month, day, week, current } = (_this.modelClassStashObj.holidays = await getHolidays(date));
+                const result = { isWorkDay: true, d: 0, w: 0, m: 0 };
+                let cur = current,
+                    flag = false;
 
-            return y.padStart(4, 0) + "-" + m.padStart(2, 0) + "-" + d.padStart(2, 0);
+                let endDate = new Date(year, month, 0).getDate();
+                result.isWorkDay = !lists.find((v) => v.date === current);
+
+                // 设置周
+                lists.some((v, i, arrs) => {
+                    if (result.isWorkDay) {
+                        if (current > v.date || i === arrs.length - 1) {
+                            let pre = arrs[i - 1];
+                            let sub = pre ? pre.date - current : 0;
+                            if (!pre) {
+                                // 最后一周没有周末的情况，2022-09
+                                result.w = endDate === day ? 0 : week;
+                            } else if (sub === 1 || sub < 0) {
+                                // 节假日前一天
+                                result.w = 0;
+                            } else {
+                                // 节假日前几天
+                                result.w = week === 0 ? 7 : week;
+                            }
+                            return true;
+                        }
+                    } else {
+                        if (v.date === cur) {
+                            cur--;
+                            result.w++;
+                        }
+                    }
+                });
+                // 设置月
+                if (day === endDate) {
+                    result.isWorkMonth = true;
+                    result.m = 0;
+                } else {
+                    result.m = day / 1;
+                }
+
+                // 判断值，是否是周六、周日
+                let fn = function (dwm) {
+                    let days = new Date(_this.someDay(result[dwm], "-", `${year}-${month}-${day}`)).getDay();
+                    if (days === 0) {
+                        result[dwm] += 2;
+                    } else if (days === 6) {
+                        result[dwm] += 1;
+                    }
+                };
+                ["w", "m"].forEach((v) => fn(v));
+
+                rl(result);
+            });
         };
 
         /**
@@ -582,6 +640,7 @@ class Methods {
             return html;
         };
     }
+    buyDate;
 
     /**
      * 1. 定时任务发送链接，打开页面后手动选择参考的日期

@@ -19,9 +19,11 @@ const {
     upVolume,
     downVolume,
     xiong,
+    modelClassStashObj,
 } = require("./methods");
 const { sendMail } = require("../utils/sendEmail");
 const { omit, cloneDeep } = require("lodash");
+const { getHolidays } = require("../api");
 
 /* ****************************************************************** */
 const modelGlobalParams = {
@@ -43,18 +45,18 @@ function testFn(data) {
 /* ****************************************************************** */
 
 function exportResults(params) {
-    const { results, datas, dwm, startDay, end, buy } = params;
+    const { results, datas, dwm, startDay, end, buy, today } = params;
     const { d, code } = startDay;
     let index = results.findIndex((v) => v.code === code);
     /* *************************************************************** */
     let maxRes = isSuccess({ datas, start: startDay.d, end, isLowSL: true });
-    let today = someDay(0) <= someDay(0, "-", buy);
+    let isToday = today < someDay(0, "-", buy);
     maxRes.before_kdj = params.MAParams.out;
     let res = {
         type: code.slice(0, 3),
-        ..._.omit(params, ["datas", "results", "startDay", "MAParams", "start"]),
+        ..._.omit(params, ["datas", "results", "startDay", "MAParams", "start", "today"]),
         start: d,
-        today,
+        today: isToday,
         ...maxRes,
     };
     // coords.push(res);
@@ -795,6 +797,10 @@ class AllsClass {
             // 2. 过滤出条件下的类型，例如：601、603...
             usedTypes = usedTypes.filter((v) => codes.indexOf(v) > -1);
 
+            if (!modelClassStashObj.holidays) {
+                const inDate = query.end ? someDay(0, "-", query.end) : someDay(query.days);
+                modelClassStashObj.holidays = await getHolidays(inDate);
+            }
             let fn = async () => {
                 let item = usedTypes[++count];
                 if (!item) {
@@ -860,11 +866,11 @@ class AllsClass {
                         // 延伸60天，用作60均线的计算
                         const stretch = 1 || 60;
                         let conditions = `code in (${item}) and dwm='${dwm}' `;
-                        if (start && end) {
-                            conditions += ` and d >= '${start}' and d < '${end}'`;
-                        } else {
-                            // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
-                        }
+                        // if (start && end) {
+                        //     conditions += ` and d >= '${start}' and d < '${end}'`;
+                        // } else {
+                        //     // conditions += ` and d >= '${someDay(365 * (dwm !== "d" ? 10 : 8) + stretch)}'`;
+                        // }
                         // 正向排序
                         conditions += ` ORDER BY d ASC`;
                         // const date1 = new Date().getTime();
@@ -892,7 +898,7 @@ class AllsClass {
                         let ps = Object.keys(datas)
                             .map((v, i) => {
                                 return new Promise((rl) => {
-                                    const res = _this.getModel({ item: datas[v], date, dwm, inModels: models });
+                                    const res = _this.getModel({ item: datas[v], inModels: models, dwm, ...cloneQuery });
 
                                     rl(res[0] && res[0].coords ? res[0] : 0);
                                 });
@@ -904,18 +910,6 @@ class AllsClass {
                             // console.log(date4 - date3);
                             console.log(`>> 模型筛选完成 - end : ${name}`);
                             let newDs = ds.filter((v) => v);
-                            // newDs.forEach((v) => {
-                            //     if (!(v.coords && v.coords.length)) return;
-                            //     v.coords.forEach((d) => {
-                            //         if (d.today) {
-                            //             if (resultsParams.models[d.name]) {
-                            //                 resultsParams.models[d.name]++;
-                            //             } else {
-                            //                 resultsParams.models[d.name] = 1;
-                            //             }
-                            //         }
-                            //     });
-                            // });
                             resultsParams.downloads = [] || resultsParams.downloads.concat(newDs);
 
                             await saveModel(newDs);
@@ -936,7 +930,7 @@ class AllsClass {
             fn();
         });
     }
-    getModel({ item: datas, date, dwm, inModels }) {
+    getModel({ item: datas, days, end, date, dwm, inModels }) {
         let coords = [],
             results = [];
         let current = new Date(date).getTime();
@@ -987,6 +981,7 @@ class AllsClass {
                 start: i,
                 results,
                 MAParams,
+                today: end ? (end > someDay() ? someDay() : end) : someDay(days),
             };
             switch (YingYang(data)) {
                 case 1:

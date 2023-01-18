@@ -1,6 +1,5 @@
-const API = require("../api");
 const { sendMail } = require("../utils/sendEmail");
-const { someDay, getRequest } = require("../model/methods");
+const { someDay, getRequest, getIsHoliday } = require("../model/methods");
 
 module.exports = function (app, connection) {
     app.get("/api/schdule", async (req, res) => {
@@ -16,7 +15,7 @@ module.exports = function (app, connection) {
         // 定期更新
         if (type === "update") {
             const date = new Date();
-            const res = await API.getHolidays(date);
+            const res = await getIsHoliday(date);
             console.log("test周:", someDay(res.w, "-", date));
             console.log("test月:", someDay(res.m, "-", date));
             console.log("test日:", !res.isWorkDay ? "休息日" : "工作日");

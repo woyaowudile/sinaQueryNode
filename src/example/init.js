@@ -141,14 +141,14 @@ module.exports = function (app, connection) {
                     res.splice(-1);
                 }
 
-                setTimeout(() => {
-                    console.log(`------${count}/${unused.length}------`);
-                    fn();
-                }, 10);
+                // setTimeout(() => {
+                console.log(`------${count}/${unused.length}------`);
+                fn();
+                // }, 10);
             } else {
                 await getRequest(`http://localhost:3334/api/duplicate/remove?start=${someDay(initStart, "-")}`);
-                await quertBefore({ dwm, mail: "init" }, connection);
-                // sendMail(`sina init： ${dwm} 成功！`);
+                await quertBefore({ dwm, mail: "init", ...query }, connection);
+                await getRequest(`http://localhost:3334/api/duplicate/remove?removeType='email'}`);
                 console.log(`-------------执行完成 /api/init---------------`);
             }
         };

@@ -5,7 +5,7 @@ module.exports = {
     sohu: "https://q.stock.sohu.com/hisHq",
     ig502: "http://ig507.com/data",
     dfcf: "http://push2his.eastmoney.com/api/qt/stock/kline/get",
-    holidays: "https://api.apihubs.cn/holiday/get?cn=1&size=31",
+    holidays: "https://api.apihubs.cn/holiday/get?cn=1&size=366",
 };
 
 /**
